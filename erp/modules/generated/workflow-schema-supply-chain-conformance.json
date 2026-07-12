@@ -4,17 +4,17 @@
   "assertions": [
     {
       "expect": "valid",
-      "name": "represents-purchase-order-approval-workflow",
-      "rationale": "The workflow schema must represent a purchase order approval workflow with states and transitions.",
+      "name": "represents-procure-to-pay-workflow",
+      "rationale": "The workflow schema must represent the Procure to Pay process with states and transitions.",
       "sample": {
-        "description": "Workflow for approving purchase orders above a threshold.",
+        "description": "End-to-end process from purchase requisition to vendor payment.",
         "entity": "PurchaseOrder",
-        "id": "po-approval",
+        "id": "procure-to-pay",
         "initialState": "draft",
         "label": {
-          "en": "Purchase Order Approval"
+          "en": "Procure to Pay"
         },
-        "name": "PurchaseOrderApproval",
+        "name": "ProcureToPay",
         "states": [
           {
             "label": {
@@ -24,22 +24,21 @@
           },
           {
             "label": {
-              "en": "Pending Approval"
-            },
-            "name": "pending-approval"
-          },
-          {
-            "label": {
               "en": "Approved"
             },
-            "name": "approved",
-            "terminal": true
+            "name": "approved"
           },
           {
             "label": {
-              "en": "Rejected"
+              "en": "Received"
             },
-            "name": "rejected",
+            "name": "received"
+          },
+          {
+            "label": {
+              "en": "Invoiced"
+            },
+            "name": "invoiced",
             "terminal": true
           }
         ],
@@ -49,43 +48,20 @@
               {
                 "action": "set-field",
                 "field": "status",
-                "value": {
-                  "var": "pending-approval"
-                }
+                "value": "approved"
               }
             ],
             "from": [
               "draft"
             ],
             "guard": {
-              "==": [
+              ">": [
                 {
                   "var": "totalAmount"
                 },
-                {
-                  "var": "totalAmount"
-                }
+                0
               ]
             },
-            "label": {
-              "en": "Submit for Approval"
-            },
-            "name": "submit",
-            "to": "pending-approval"
-          },
-          {
-            "actions": [
-              {
-                "action": "set-field",
-                "field": "status",
-                "value": {
-                  "var": "approved"
-                }
-              }
-            ],
-            "from": [
-              "pending-approval"
-            ],
             "label": {
               "en": "Approve"
             },
@@ -97,19 +73,34 @@
               {
                 "action": "set-field",
                 "field": "status",
-                "value": {
-                  "var": "rejected"
-                }
+                "value": "received"
               }
             ],
             "from": [
-              "pending-approval"
+              "approved"
             ],
             "label": {
-              "en": "Reject"
+              "en": "Receive"
             },
-            "name": "reject",
-            "to": "rejected"
+            "name": "receive",
+            "to": "received"
+          },
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": "invoiced"
+              }
+            ],
+            "from": [
+              "received"
+            ],
+            "label": {
+              "en": "Invoice"
+            },
+            "name": "invoice",
+            "to": "invoiced"
           }
         ]
       },
@@ -118,17 +109,17 @@
     },
     {
       "expect": "valid",
-      "name": "represents-inventory-count-workflow",
-      "rationale": "The workflow schema must represent an inventory count workflow with actions.",
+      "name": "represents-order-to-cash-workflow",
+      "rationale": "The workflow schema must represent the Order to Cash process.",
       "sample": {
-        "description": "Workflow for counting inventory and adjusting quantities.",
-        "entity": "InventoryOnHand",
-        "id": "inventory-count",
+        "description": "End-to-end process from sales order to customer payment.",
+        "entity": "SalesOrder",
+        "id": "order-to-cash",
         "initialState": "open",
         "label": {
-          "en": "Inventory Count"
+          "en": "Order to Cash"
         },
-        "name": "InventoryCount",
+        "name": "OrderToCash",
         "states": [
           {
             "label": {
@@ -138,15 +129,15 @@
           },
           {
             "label": {
-              "en": "Counted"
+              "en": "Shipped"
             },
-            "name": "counted"
+            "name": "shipped"
           },
           {
             "label": {
-              "en": "Adjusted"
+              "en": "Invoiced"
             },
-            "name": "adjusted",
+            "name": "invoiced",
             "terminal": true
           }
         ],
@@ -154,52 +145,273 @@
           {
             "actions": [
               {
-                "action": "update-record",
-                "entity": "InventoryOnHand",
-                "fields": {
-                  "quantity": {
-                    "var": "countedQuantity"
-                  }
-                }
+                "action": "set-field",
+                "field": "status",
+                "value": "shipped"
               }
             ],
             "from": [
               "open"
             ],
             "label": {
-              "en": "Record Count"
+              "en": "Ship"
             },
-            "name": "record-count",
-            "to": "counted"
+            "name": "ship",
+            "to": "shipped"
           },
           {
             "actions": [
               {
                 "action": "set-field",
-                "field": "lastUpdated",
-                "value": {
-                  "var": "now"
-                }
+                "field": "status",
+                "value": "invoiced"
               }
             ],
             "from": [
-              "counted"
+              "shipped"
             ],
             "label": {
-              "en": "Adjust"
+              "en": "Invoice"
             },
-            "name": "adjust",
-            "to": "adjusted"
+            "name": "invoice",
+            "to": "invoiced"
           }
         ]
       },
       "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
-      "source": "d365-supply-chain-reference/InventoryOnHand"
+      "source": "d365-supply-chain-reference/OrderToCash"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-production-execution-workflow",
+      "rationale": "The workflow schema must represent the Production Execution process with multiple states and transitions.",
+      "sample": {
+        "description": "Process to manufacture a product from a production order.",
+        "entity": "ProductionOrder",
+        "id": "production-execution",
+        "initialState": "created",
+        "label": {
+          "en": "Production Execution"
+        },
+        "name": "ProductionExecution",
+        "states": [
+          {
+            "label": {
+              "en": "Created"
+            },
+            "name": "created"
+          },
+          {
+            "label": {
+              "en": "Estimated"
+            },
+            "name": "estimated"
+          },
+          {
+            "label": {
+              "en": "Scheduled"
+            },
+            "name": "scheduled"
+          },
+          {
+            "label": {
+              "en": "Released"
+            },
+            "name": "released"
+          },
+          {
+            "label": {
+              "en": "Started"
+            },
+            "name": "started"
+          },
+          {
+            "label": {
+              "en": "Finished"
+            },
+            "name": "finished",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": "estimated"
+              }
+            ],
+            "from": [
+              "created"
+            ],
+            "label": {
+              "en": "Estimate"
+            },
+            "name": "estimate",
+            "to": "estimated"
+          },
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": "scheduled"
+              }
+            ],
+            "from": [
+              "estimated"
+            ],
+            "guard": {
+              "and": [
+                {
+                  "var": "scheduledStartDate"
+                },
+                {
+                  "var": "scheduledEndDate"
+                }
+              ]
+            },
+            "label": {
+              "en": "Schedule"
+            },
+            "name": "schedule",
+            "to": "scheduled"
+          },
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": "released"
+              }
+            ],
+            "from": [
+              "scheduled"
+            ],
+            "label": {
+              "en": "Release"
+            },
+            "name": "release",
+            "to": "released"
+          },
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": "started"
+              }
+            ],
+            "from": [
+              "released"
+            ],
+            "label": {
+              "en": "Start"
+            },
+            "name": "start",
+            "to": "started"
+          },
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": "finished"
+              }
+            ],
+            "from": [
+              "started"
+            ],
+            "label": {
+              "en": "Finish"
+            },
+            "name": "finish",
+            "to": "finished"
+          }
+        ]
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+      "source": "d365-supply-chain-reference/ProductionExecution"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-inventory-transfer-workflow",
+      "rationale": "The workflow schema must represent the Inventory Transfer process.",
+      "sample": {
+        "description": "Process to move inventory between warehouses.",
+        "entity": "TransferOrder",
+        "id": "inventory-transfer",
+        "initialState": "created",
+        "label": {
+          "en": "Inventory Transfer"
+        },
+        "name": "InventoryTransfer",
+        "states": [
+          {
+            "label": {
+              "en": "Created"
+            },
+            "name": "created"
+          },
+          {
+            "label": {
+              "en": "Shipped"
+            },
+            "name": "shipped"
+          },
+          {
+            "label": {
+              "en": "Received"
+            },
+            "name": "received",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": "shipped"
+              }
+            ],
+            "from": [
+              "created"
+            ],
+            "label": {
+              "en": "Ship"
+            },
+            "name": "ship",
+            "to": "shipped"
+          },
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": "received"
+              }
+            ],
+            "from": [
+              "shipped"
+            ],
+            "label": {
+              "en": "Receive"
+            },
+            "name": "receive",
+            "to": "received"
+          }
+        ]
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+      "source": "d365-supply-chain-reference/InventoryTransfer"
     },
     {
       "expect": "invalid",
       "name": "rejects-missing-initial-state",
-      "rationale": "The workflow schema requires 'initialState' property.",
+      "rationale": "Missing required field 'initialState'.",
       "sample": {
         "entity": "PurchaseOrder",
         "id": "bad-workflow",
@@ -218,12 +430,12 @@
         "transitions": []
       },
       "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
-      "source": "constraint:workflow.schema.json"
+      "source": "constraint:required"
     },
     {
       "expect": "invalid",
       "name": "rejects-transition-without-from",
-      "rationale": "Each transition must have a 'from' array.",
+      "rationale": "Transition missing required field 'from'.",
       "sample": {
         "entity": "PurchaseOrder",
         "id": "bad-transition",
@@ -243,8 +455,7 @@
             "label": {
               "en": "Approved"
             },
-            "name": "approved",
-            "terminal": true
+            "name": "approved"
           }
         ],
         "transitions": [
@@ -258,34 +469,28 @@
         ]
       },
       "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
-      "source": "constraint:workflow.schema.json"
+      "source": "constraint:required"
     },
     {
       "expect": "invalid",
-      "name": "rejects-state-without-name",
-      "rationale": "Each state must have a 'name' property.",
+      "name": "rejects-empty-states-array",
+      "rationale": "States array must have at least 1 item.",
       "sample": {
         "entity": "PurchaseOrder",
-        "id": "bad-state",
+        "id": "empty-states",
         "initialState": "draft",
         "label": {
-          "en": "Bad State"
+          "en": "Empty States"
         },
-        "name": "BadState",
-        "states": [
-          {
-            "label": {
-              "en": "Draft"
-            }
-          }
-        ],
+        "name": "EmptyStates",
+        "states": [],
         "transitions": []
       },
       "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
-      "source": "constraint:workflow.schema.json"
+      "source": "constraint:minItems"
     }
   ],
-  "description": "Checks that workflow.schema.json can represent typical procurement and inventory workflows from the D365 Supply Chain reference, and rejects missing required fields.",
+  "description": "Validates that the workflow schema can represent typical procurement and inventory workflows from the D365 Supply Chain reference, and rejects missing required fields.",
   "id": "workflow-schema-supply-chain-conformance",
   "label": {
     "en": "Workflow schema — Supply Chain conformance"

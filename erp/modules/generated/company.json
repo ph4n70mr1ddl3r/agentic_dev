@@ -2,7 +2,7 @@
   "audit": true,
   "category": "organization",
   "companyScoped": false,
-  "description": "Master data entity representing a legal entity or organization. All transactional entities reference this via companyId.",
+  "description": "Master entity representing a legal entity or organization. All transactional entities reference this via companyId.",
   "fields": [
     {
       "label": {
@@ -37,39 +37,15 @@
         "en": "Base Currency"
       },
       "name": "currency",
-      "picklist": {
-        "defaultValue": "USD",
-        "options": [
-          {
-            "label": {
-              "en": "USD"
-            },
-            "value": "USD"
-          },
-          {
-            "label": {
-              "en": "EUR"
-            },
-            "value": "EUR"
-          },
-          {
-            "label": {
-              "en": "GBP"
-            },
-            "value": "GBP"
-          }
-        ]
-      },
       "required": true,
-      "type": "picklist"
+      "type": "text"
     },
     {
-      "default": true,
       "label": {
-        "en": "Active"
+        "en": "Country"
       },
-      "name": "isActive",
-      "type": "boolean"
+      "name": "country",
+      "type": "text"
     },
     {
       "label": {

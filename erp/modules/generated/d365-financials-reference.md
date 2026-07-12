@@ -18,27 +18,15 @@ A legal entity that owns financial transactions and a chart of accounts.
 | `name` | text | yes |  |
 | `baseCurrency` | text | yes |  |
 
-### ChartOfAccounts — Chart of Accounts _(master)_
-
-The structured list of all general ledger accounts used by a company.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `accountId` | text | yes |  |
-| `name` | text | yes |  |
-| `type` | picklist | yes |  |
-
 ### LedgerAccount — Ledger Account _(master)_
 
-An individual account in the chart of accounts, used for posting transactions.
+A chart of accounts entry representing a financial account.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `mainAccount` | text | yes |  |
+| `accountNumber` | text | yes |  |
 | `name` | text | yes |  |
-| `balanceControl` | boolean |  |  |
-
-**Relationships:** `chartOfAccounts` → ChartOfAccounts (many-to-one)
+| `type` | picklist | yes |  |
 
 ### JournalEntry — Journal Entry _(transactional)_
 
@@ -59,41 +47,41 @@ A single debit or credit line within a journal entry.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `lineNo` | integer | yes |  |
-| `account` | lookup | yes |  |
+| `lineNumber` | integer | yes |  |
+| `accountId` | lookup | yes |  |
 | `debitAmount` | money |  |  |
 | `creditAmount` | money |  |  |
-| `currency` | text |  |  |
+| `currencyCode` | text | yes |  |
 
-**Relationships:** `journalEntry` → JournalEntry (many-to-one); `ledgerAccount` → LedgerAccount (many-to-one)
+**Relationships:** `journalEntry` → JournalEntry (many-to-one)
 
 ### Customer — Customer _(master)_
 
-A person or organization that purchases goods or services on credit.
+A party that owes money to the organization.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `customerId` | text | yes |  |
+| `customerAccount` | text | yes |  |
 | `name` | text | yes |  |
-| `creditLimit` | money |  |  |
+| `currencyCode` | text | yes |  |
 
 ### Vendor — Vendor _(master)_
 
-A supplier from whom goods or services are purchased.
+A party to whom the organization owes money.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `vendorId` | text | yes |  |
+| `vendorAccount` | text | yes |  |
 | `name` | text | yes |  |
-| `paymentTerms` | text |  |  |
+| `currencyCode` | text | yes |  |
 
 ### Invoice — Invoice _(transactional)_
 
-A document issued by a seller to a buyer for goods or services provided.
+A document requesting payment for goods or services.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `invoiceId` | text | yes |  |
+| `invoiceNumber` | text | yes |  |
 | `invoiceDate` | date | yes |  |
 | `dueDate` | date | yes |  |
 | `totalAmount` | money | yes |  |
@@ -103,26 +91,37 @@ A document issued by a seller to a buyer for goods or services provided.
 
 ### Payment — Payment _(transactional)_
 
-A payment made to or received from a customer or vendor.
+A transaction that settles an invoice.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `paymentId` | text | yes |  |
 | `paymentDate` | date | yes |  |
 | `amount` | money | yes |  |
-| `direction` | picklist | yes |  |
+| `currencyCode` | text | yes |  |
 
-**Relationships:** `customer` → Customer (many-to-one); `vendor` → Vendor (many-to-one)
+**Relationships:** `invoice` → Invoice (many-to-one)
 
-### GeneralLedger — General Ledger _(reference)_
+### Budget — Budget _(master)_
 
-The central repository of all financial transactions posted from subledgers.
+A financial plan for a period.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `transactionId` | guid | yes |  |
-| `postingDate` | date | yes |  |
-| `amount` | money | yes |  |
+| `budgetId` | text | yes |  |
+| `fiscalYear` | integer | yes |  |
+| `status` | picklist | yes |  |
+
+### FixedAsset — Fixed Asset _(master)_
+
+A long-term tangible asset.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `assetNumber` | text | yes |  |
+| `name` | text | yes |  |
+| `acquisitionCost` | money | yes |  |
+| `depreciationMethod` | picklist | yes |  |
 
 ## Processes
 
@@ -131,33 +130,44 @@ The central repository of all financial transactions posted from subledgers.
 Validate and post a journal entry to the general ledger.
 
 1. Create journal entry header
-2. Add journal lines with debits and credits
+2. Add journal lines with debit/credit amounts
 3. Validate that debits equal credits
 4. Post the journal entry
 5. Update ledger account balances
 
-### InvoiceProcessing — Invoice Processing
+### InvoicePayment — Invoice Payment
 
-Create and post an invoice for a customer or from a vendor.
+Record a payment against an invoice and settle it.
 
-1. Create invoice header
-2. Add invoice lines
-3. Validate invoice totals
-4. Post the invoice
-5. Update customer/vendor balance
+1. Receive payment from customer or make payment to vendor
+2. Create payment record
+3. Apply payment to open invoice
+4. Mark invoice as paid if fully settled
+5. Post payment to general ledger
 
-### PaymentSettlement — Payment Settlement
+### BudgetPlanning — Budget Planning
 
-Apply a payment to outstanding invoices.
+Create and approve a budget for a fiscal year.
 
-1. Receive or make payment
-2. Identify open invoices
-3. Apply payment to invoices
-4. Post settlement
-5. Update customer/vendor balances
+1. Define budget plan template
+2. Enter budget amounts by account and period
+3. Review and route for approval
+4. Approve budget plan
+5. Transfer to budget register entries
+
+### FixedAssetDepreciation — Fixed Asset Depreciation
+
+Calculate and post depreciation for fixed assets.
+
+1. Run depreciation proposal
+2. Review depreciation amounts
+3. Post depreciation journal entry
+4. Update asset book value
 
 ## Rules
 
 - **BalancedEntry** _(error, before-post)_ — A journal entry's debits must equal its credits before posting.
-- **CreditLimitCheck** _(warning, before-post)_ — An invoice cannot exceed the customer's credit limit.
-- **RequiredFields** _(error, before-create)_ — Mandatory fields must be filled before saving.
+- **InvoiceTotalMatch** _(error, before-post)_ — The sum of line amounts on an invoice must equal the total amount.
+- **PaymentNotExceedInvoice** _(error, before-create)_ — A payment amount cannot exceed the remaining balance of the invoice.
+- **BudgetPeriodValid** _(error, before-create)_ — Budget periods must fall within the fiscal year.
+- **DepreciationMethodRequired** _(error, before-create)_ — A fixed asset must have a depreciation method assigned.

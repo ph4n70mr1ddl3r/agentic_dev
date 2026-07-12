@@ -19,12 +19,14 @@ A distinct item or service that is traded or manufactured.
 | `productName` | text | yes |  |
 | `itemGroupId` | lookup | yes |  |
 | `unitOfMeasure` | text | yes |  |
+| `isPurchased` | boolean |  |  |
+| `isManufactured` | boolean |  |  |
 
-**Relationships:** `inventoryOnHand` → InventoryOnHand (one-to-many); `billOfMaterials` → BillOfMaterials (one-to-many)
+**Relationships:** `inventDim` → InventoryDimension (one-to-many); `bom` → BillOfMaterials (one-to-many)
 
 ### PurchaseOrder — Purchase Order _(transactional)_
 
-A document that authorizes the purchase of products from a vendor.
+A document that authorizes a purchase transaction with a vendor.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -32,12 +34,13 @@ A document that authorizes the purchase of products from a vendor.
 | `vendorId` | lookup | yes |  |
 | `orderDate` | date | yes |  |
 | `status` | picklist | yes |  |
+| `totalAmount` | money |  |  |
 
 **Relationships:** `lines` → PurchaseOrderLine (one-to-many)
 
 ### PurchaseOrderLine — Purchase Order Line _(transactional)_
 
-A line item on a purchase order specifying product, quantity, and price.
+A single line item on a purchase order.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -45,12 +48,13 @@ A line item on a purchase order specifying product, quantity, and price.
 | `productId` | lookup | yes |  |
 | `quantity` | decimal | yes |  |
 | `unitPrice` | money | yes |  |
+| `lineAmount` | money |  |  |
 
 **Relationships:** `purchaseOrder` → PurchaseOrder (many-to-one)
 
 ### SalesOrder — Sales Order _(transactional)_
 
-A document that records a customer's request to purchase products.
+A document that records a customer's request to purchase products or services.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -58,12 +62,13 @@ A document that records a customer's request to purchase products.
 | `customerId` | lookup | yes |  |
 | `orderDate` | date | yes |  |
 | `status` | picklist | yes |  |
+| `totalAmount` | money |  |  |
 
 **Relationships:** `lines` → SalesOrderLine (one-to-many)
 
 ### SalesOrderLine — Sales Order Line _(transactional)_
 
-A line item on a sales order specifying product, quantity, and price.
+A single line item on a sales order.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -71,21 +76,19 @@ A line item on a sales order specifying product, quantity, and price.
 | `productId` | lookup | yes |  |
 | `quantity` | decimal | yes |  |
 | `unitPrice` | money | yes |  |
+| `lineAmount` | money |  |  |
 
 **Relationships:** `salesOrder` → SalesOrder (many-to-one)
 
-### InventoryOnHand — Inventory On-Hand _(transactional)_
+### InventoryDimension — Inventory Dimension _(reference)_
 
-Current inventory quantity of a product at a specific warehouse and location.
+A dimension that tracks inventory by site, warehouse, location, batch, serial, etc.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `productId` | lookup | yes |  |
-| `warehouseId` | lookup | yes |  |
-| `quantity` | decimal | yes |  |
-| `lastUpdated` | datetime | yes |  |
-
-**Relationships:** `product` → Product (many-to-one)
+| `dimensionId` | text | yes |  |
+| `dimensionType` | picklist | yes |  |
+| `value` | text | yes |  |
 
 ### Warehouse — Warehouse _(master)_
 
@@ -94,7 +97,7 @@ A physical location where inventory is stored.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `warehouseId` | text | yes |  |
-| `warehouseName` | text | yes |  |
+| `name` | text | yes |  |
 | `siteId` | lookup | yes |  |
 
 ### BillOfMaterials — Bill of Materials _(master)_
@@ -105,22 +108,23 @@ A list of components and quantities required to manufacture a product.
 |---|---|---|---|
 | `bomId` | text | yes |  |
 | `productId` | lookup | yes |  |
-| `quantity` | decimal | yes |  |
-| `validFrom` | date | yes |  |
+| `name` | text |  |  |
+| `isActive` | boolean |  |  |
 
 **Relationships:** `lines` → BillOfMaterialsLine (one-to-many)
 
-### BillOfMaterialsLine — Bill of Materials Line _(master)_
+### BillOfMaterialsLine — Bill of Materials Line _(transactional)_
 
-A component line in a bill of materials.
+A single component line in a bill of materials.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `lineNumber` | integer | yes |  |
 | `componentProductId` | lookup | yes |  |
 | `quantity` | decimal | yes |  |
+| `unitOfMeasure` | text | yes |  |
 
-**Relationships:** `billOfMaterials` → BillOfMaterials (many-to-one)
+**Relationships:** `bom` → BillOfMaterials (many-to-one)
 
 ### ProductionOrder — Production Order _(transactional)_
 
@@ -132,43 +136,76 @@ An order to manufacture a specific quantity of a product.
 | `productId` | lookup | yes |  |
 | `quantity` | decimal | yes |  |
 | `status` | picklist | yes |  |
+| `scheduledStartDate` | date |  |  |
+| `scheduledEndDate` | date |  |  |
 
-**Relationships:** `bom` → BillOfMaterials (many-to-one)
+**Relationships:** `bom` → BillOfMaterials (many-to-one); `route` → Route (many-to-one)
 
-### Vendor — Vendor _(master)_
+### Route — Route _(master)_
 
-A supplier of products or services.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `vendorId` | text | yes |  |
-| `vendorName` | text | yes |  |
-| `vendorGroup` | lookup | yes |  |
-
-### Customer — Customer _(master)_
-
-A buyer of products or services.
+A sequence of operations required to manufacture a product.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `customerId` | text | yes |  |
-| `customerName` | text | yes |  |
-| `customerGroup` | lookup | yes |  |
+| `routeId` | text | yes |  |
+| `productId` | lookup | yes |  |
+| `name` | text |  |  |
+
+**Relationships:** `operations` → RouteOperation (one-to-many)
+
+### RouteOperation — Route Operation _(transactional)_
+
+A single operation in a production route.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `operationNumber` | integer | yes |  |
+| `operationId` | lookup | yes |  |
+| `runTime` | decimal |  |  |
+| `setupTime` | decimal |  |  |
+
+**Relationships:** `route` → Route (many-to-one)
+
+### TransferOrder — Transfer Order _(transactional)_
+
+An order to move inventory from one warehouse to another.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `transferOrderNumber` | text | yes |  |
+| `fromWarehouseId` | lookup | yes |  |
+| `toWarehouseId` | lookup | yes |  |
+| `status` | picklist | yes |  |
+| `transferDate` | date |  |  |
+
+**Relationships:** `lines` → TransferOrderLine (one-to-many)
+
+### TransferOrderLine — Transfer Order Line _(transactional)_
+
+A single line item on a transfer order.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `lineNumber` | integer | yes |  |
+| `productId` | lookup | yes |  |
+| `quantity` | decimal | yes |  |
+
+**Relationships:** `transferOrder` → TransferOrder (many-to-one)
 
 ## Processes
 
-### ProcureToPay — Procure-to-Pay
+### ProcureToPay — Procure to Pay
 
 End-to-end process from purchase requisition to vendor payment.
 
 1. Create purchase requisition
-2. Convert to purchase order
+2. Convert requisition to purchase order
 3. Approve purchase order
 4. Receive products against purchase order
 5. Record vendor invoice
 6. Pay vendor
 
-### OrderToCash — Order-to-Cash
+### OrderToCash — Order to Cash
 
 End-to-end process from sales order to customer payment.
 
@@ -181,18 +218,29 @@ End-to-end process from sales order to customer payment.
 
 ### ProductionExecution — Production Execution
 
-Process to manufacture products from raw materials.
+Process to manufacture a product from a production order.
 
 1. Create production order
-2. Release production order
-3. Pick raw materials
-4. Start production
-5. Report as finished
-6. End production order
+2. Estimate production order
+3. Schedule production order
+4. Release production order
+5. Start production order
+6. Report as finished
+7. End production order
+
+### InventoryTransfer — Inventory Transfer
+
+Process to move inventory between warehouses.
+
+1. Create transfer order
+2. Pick inventory from source warehouse
+3. Ship inventory
+4. Receive inventory at destination warehouse
 
 ## Rules
 
-- **NegativeInventoryNotAllowed** _(error, before-update)_ — Inventory on-hand quantity cannot go below zero.
-- **PurchaseOrderApprovalRequired** _(error, on-submit)_ — Purchase orders above a certain value must be approved before confirmation.
-- **SalesOrderCreditLimitCheck** _(warning, before-create)_ — Sales order cannot exceed customer's credit limit.
-- **BOMVersionValidity** _(error, before-create)_ — A BOM version must have a valid-from date and cannot overlap with another active version for the same product.
+- **PurchaseOrderApproval** _(error, before-update)_ — Purchase orders above a certain amount must be approved before they can be confirmed.
+- **SalesOrderCreditLimit** _(error, before-create)_ — Sales orders cannot exceed the customer's credit limit without approval.
+- **NegativeInventory** _(error, before-post)_ — Inventory on-hand quantity cannot go negative for physical transactions.
+- **BOMConsistency** _(error, before-create)_ — A BOM must have at least one line and cannot contain itself as a component.
+- **ProductionOrderScheduling** _(warning, before-update)_ — A production order must have a scheduled start and end date before release.

@@ -32,13 +32,13 @@
     },
     {
       "category": "master",
-      "description": "The structured list of all general ledger accounts used by a company.",
+      "description": "A chart of accounts entry representing a financial account.",
       "fields": [
         {
           "label": {
-            "en": "Account ID"
+            "en": "Account Number"
           },
-          "name": "accountId",
+          "name": "accountNumber",
           "required": true,
           "type": "text"
         },
@@ -60,53 +60,10 @@
         }
       ],
       "label": {
-        "en": "Chart of Accounts"
-      },
-      "name": "ChartOfAccounts",
-      "source": "D365 Finance > General ledger > Chart of accounts"
-    },
-    {
-      "category": "master",
-      "description": "An individual account in the chart of accounts, used for posting transactions.",
-      "fields": [
-        {
-          "label": {
-            "en": "Main Account"
-          },
-          "name": "mainAccount",
-          "required": true,
-          "type": "text"
-        },
-        {
-          "label": {
-            "en": "Account Name"
-          },
-          "name": "name",
-          "required": true,
-          "type": "text"
-        },
-        {
-          "label": {
-            "en": "Balance Control"
-          },
-          "name": "balanceControl",
-          "required": false,
-          "type": "boolean"
-        }
-      ],
-      "label": {
         "en": "Ledger Account"
       },
       "name": "LedgerAccount",
-      "relationships": [
-        {
-          "cardinality": "many-to-one",
-          "description": "The chart this account belongs to.",
-          "name": "chartOfAccounts",
-          "target": "ChartOfAccounts"
-        }
-      ],
-      "source": "D365 Finance > General ledger > Main accounts"
+      "source": "D365 Finance > General ledger > Chart of accounts"
     },
     {
       "category": "transactional",
@@ -167,15 +124,15 @@
           "label": {
             "en": "Line Number"
           },
-          "name": "lineNo",
+          "name": "lineNumber",
           "required": true,
           "type": "integer"
         },
         {
           "label": {
-            "en": "Account"
+            "en": "Ledger Account"
           },
-          "name": "account",
+          "name": "accountId",
           "required": true,
           "type": "lookup"
         },
@@ -184,7 +141,6 @@
             "en": "Debit Amount"
           },
           "name": "debitAmount",
-          "required": false,
           "type": "money"
         },
         {
@@ -192,15 +148,14 @@
             "en": "Credit Amount"
           },
           "name": "creditAmount",
-          "required": false,
           "type": "money"
         },
         {
           "label": {
             "en": "Currency"
           },
-          "name": "currency",
-          "required": false,
+          "name": "currencyCode",
+          "required": true,
           "type": "text"
         }
       ],
@@ -214,25 +169,19 @@
           "description": "The parent journal entry.",
           "name": "journalEntry",
           "target": "JournalEntry"
-        },
-        {
-          "cardinality": "many-to-one",
-          "description": "The account being debited or credited.",
-          "name": "ledgerAccount",
-          "target": "LedgerAccount"
         }
       ],
-      "source": "D365 Finance > General ledger > Journal lines"
+      "source": "D365 Finance > General ledger > Journal entries"
     },
     {
       "category": "master",
-      "description": "A person or organization that purchases goods or services on credit.",
+      "description": "A party that owes money to the organization.",
       "fields": [
         {
           "label": {
-            "en": "Customer ID"
+            "en": "Customer Account"
           },
-          "name": "customerId",
+          "name": "customerAccount",
           "required": true,
           "type": "text"
         },
@@ -246,11 +195,11 @@
         },
         {
           "label": {
-            "en": "Credit Limit"
+            "en": "Currency"
           },
-          "name": "creditLimit",
-          "required": false,
-          "type": "money"
+          "name": "currencyCode",
+          "required": true,
+          "type": "text"
         }
       ],
       "label": {
@@ -261,13 +210,13 @@
     },
     {
       "category": "master",
-      "description": "A supplier from whom goods or services are purchased.",
+      "description": "A party to whom the organization owes money.",
       "fields": [
         {
           "label": {
-            "en": "Vendor ID"
+            "en": "Vendor Account"
           },
-          "name": "vendorId",
+          "name": "vendorAccount",
           "required": true,
           "type": "text"
         },
@@ -281,10 +230,10 @@
         },
         {
           "label": {
-            "en": "Payment Terms"
+            "en": "Currency"
           },
-          "name": "paymentTerms",
-          "required": false,
+          "name": "currencyCode",
+          "required": true,
           "type": "text"
         }
       ],
@@ -296,13 +245,13 @@
     },
     {
       "category": "transactional",
-      "description": "A document issued by a seller to a buyer for goods or services provided.",
+      "description": "A document requesting payment for goods or services.",
       "fields": [
         {
           "label": {
-            "en": "Invoice ID"
+            "en": "Invoice Number"
           },
-          "name": "invoiceId",
+          "name": "invoiceNumber",
           "required": true,
           "type": "text"
         },
@@ -346,13 +295,13 @@
       "relationships": [
         {
           "cardinality": "many-to-one",
-          "description": "The customer being invoiced.",
+          "description": "The customer for a sales invoice.",
           "name": "customer",
           "target": "Customer"
         },
         {
           "cardinality": "many-to-one",
-          "description": "The vendor for purchase invoices.",
+          "description": "The vendor for a purchase invoice.",
           "name": "vendor",
           "target": "Vendor"
         }
@@ -361,7 +310,7 @@
     },
     {
       "category": "transactional",
-      "description": "A payment made to or received from a customer or vendor.",
+      "description": "A transaction that settles an invoice.",
       "fields": [
         {
           "label": {
@@ -389,11 +338,11 @@
         },
         {
           "label": {
-            "en": "Direction"
+            "en": "Currency"
           },
-          "name": "direction",
+          "name": "currencyCode",
           "required": true,
-          "type": "picklist"
+          "type": "text"
         }
       ],
       "label": {
@@ -403,53 +352,90 @@
       "relationships": [
         {
           "cardinality": "many-to-one",
-          "description": "Customer payment received.",
-          "name": "customer",
-          "target": "Customer"
-        },
-        {
-          "cardinality": "many-to-one",
-          "description": "Vendor payment made.",
-          "name": "vendor",
-          "target": "Vendor"
+          "description": "The invoice being paid.",
+          "name": "invoice",
+          "target": "Invoice"
         }
       ],
-      "source": "D365 Finance > Accounts payable > Payments"
+      "source": "D365 Finance > Accounts receivable > Payments"
     },
     {
-      "category": "reference",
-      "description": "The central repository of all financial transactions posted from subledgers.",
+      "category": "master",
+      "description": "A financial plan for a period.",
       "fields": [
         {
           "label": {
-            "en": "Transaction ID"
+            "en": "Budget ID"
           },
-          "name": "transactionId",
+          "name": "budgetId",
           "required": true,
-          "type": "guid"
+          "type": "text"
         },
         {
           "label": {
-            "en": "Posting Date"
+            "en": "Fiscal Year"
           },
-          "name": "postingDate",
+          "name": "fiscalYear",
           "required": true,
-          "type": "date"
+          "type": "integer"
         },
         {
           "label": {
-            "en": "Amount"
+            "en": "Status"
           },
-          "name": "amount",
+          "name": "status",
           "required": true,
-          "type": "money"
+          "type": "picklist"
         }
       ],
       "label": {
-        "en": "General Ledger"
+        "en": "Budget"
       },
-      "name": "GeneralLedger",
-      "source": "D365 Finance > General ledger > General ledger transactions"
+      "name": "Budget",
+      "source": "D365 Finance > Budgeting > Budgets"
+    },
+    {
+      "category": "master",
+      "description": "A long-term tangible asset.",
+      "fields": [
+        {
+          "label": {
+            "en": "Asset Number"
+          },
+          "name": "assetNumber",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Name"
+          },
+          "name": "name",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Acquisition Cost"
+          },
+          "name": "acquisitionCost",
+          "required": true,
+          "type": "money"
+        },
+        {
+          "label": {
+            "en": "Depreciation Method"
+          },
+          "name": "depreciationMethod",
+          "required": true,
+          "type": "picklist"
+        }
+      ],
+      "label": {
+        "en": "Fixed Asset"
+      },
+      "name": "FixedAsset",
+      "source": "D365 Finance > Fixed assets > Fixed assets"
     }
   ],
   "id": "d365-financials-reference",
@@ -463,8 +449,7 @@
       "entities": [
         "JournalEntry",
         "JournalLine",
-        "LedgerAccount",
-        "GeneralLedger"
+        "LedgerAccount"
       ],
       "label": {
         "en": "Journal Posting"
@@ -472,7 +457,7 @@
       "name": "JournalPosting",
       "steps": [
         "Create journal entry header",
-        "Add journal lines with debits and credits",
+        "Add journal lines with debit/credit amounts",
         "Validate that debits equal credits",
         "Post the journal entry",
         "Update ledger account balances"
@@ -483,23 +468,46 @@
       ]
     },
     {
-      "description": "Create and post an invoice for a customer or from a vendor.",
+      "description": "Record a payment against an invoice and settle it.",
       "entities": [
         "Invoice",
+        "Payment",
         "Customer",
         "Vendor",
-        "GeneralLedger"
+        "LedgerAccount"
       ],
       "label": {
-        "en": "Invoice Processing"
+        "en": "Invoice Payment"
       },
-      "name": "InvoiceProcessing",
+      "name": "InvoicePayment",
       "steps": [
-        "Create invoice header",
-        "Add invoice lines",
-        "Validate invoice totals",
-        "Post the invoice",
-        "Update customer/vendor balance"
+        "Receive payment from customer or make payment to vendor",
+        "Create payment record",
+        "Apply payment to open invoice",
+        "Mark invoice as paid if fully settled",
+        "Post payment to general ledger"
+      ],
+      "triggers": [
+        "manual",
+        "event"
+      ]
+    },
+    {
+      "description": "Create and approve a budget for a fiscal year.",
+      "entities": [
+        "Budget",
+        "LedgerAccount"
+      ],
+      "label": {
+        "en": "Budget Planning"
+      },
+      "name": "BudgetPlanning",
+      "steps": [
+        "Define budget plan template",
+        "Enter budget amounts by account and period",
+        "Review and route for approval",
+        "Approve budget plan",
+        "Transfer to budget register entries"
       ],
       "triggers": [
         "manual",
@@ -507,27 +515,25 @@
       ]
     },
     {
-      "description": "Apply a payment to outstanding invoices.",
+      "description": "Calculate and post depreciation for fixed assets.",
       "entities": [
-        "Payment",
-        "Invoice",
-        "Customer",
-        "Vendor"
+        "FixedAsset",
+        "LedgerAccount",
+        "JournalEntry"
       ],
       "label": {
-        "en": "Payment Settlement"
+        "en": "Fixed Asset Depreciation"
       },
-      "name": "PaymentSettlement",
+      "name": "FixedAssetDepreciation",
       "steps": [
-        "Receive or make payment",
-        "Identify open invoices",
-        "Apply payment to invoices",
-        "Post settlement",
-        "Update customer/vendor balances"
+        "Run depreciation proposal",
+        "Review depreciation amounts",
+        "Post depreciation journal entry",
+        "Update asset book value"
       ],
       "triggers": [
-        "manual",
-        "workflow"
+        "scheduled",
+        "manual"
       ]
     }
   ],
@@ -542,21 +548,39 @@
       "severity": "error"
     },
     {
-      "description": "An invoice cannot exceed the customer's credit limit.",
+      "description": "The sum of line amounts on an invoice must equal the total amount.",
       "enforced": "before-post",
       "label": {
-        "en": "Credit Limit Check"
+        "en": "Invoice Total Match"
       },
-      "name": "CreditLimitCheck",
-      "severity": "warning"
+      "name": "InvoiceTotalMatch",
+      "severity": "error"
     },
     {
-      "description": "Mandatory fields must be filled before saving.",
+      "description": "A payment amount cannot exceed the remaining balance of the invoice.",
       "enforced": "before-create",
       "label": {
-        "en": "Required Fields"
+        "en": "Payment Not Exceed Invoice"
       },
-      "name": "RequiredFields",
+      "name": "PaymentNotExceedInvoice",
+      "severity": "error"
+    },
+    {
+      "description": "Budget periods must fall within the fiscal year.",
+      "enforced": "before-create",
+      "label": {
+        "en": "Budget Period Valid"
+      },
+      "name": "BudgetPeriodValid",
+      "severity": "error"
+    },
+    {
+      "description": "A fixed asset must have a depreciation method assigned.",
+      "enforced": "before-create",
+      "label": {
+        "en": "Depreciation Method Required"
+      },
+      "name": "DepreciationMethodRequired",
       "severity": "error"
     }
   ],
