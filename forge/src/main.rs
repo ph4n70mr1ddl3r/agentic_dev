@@ -5,11 +5,13 @@ use clap::{Parser, Subcommand};
 
 mod agents;
 mod config;
+mod git;
 mod github;
 mod issues;
 mod llm;
 mod orchestrator;
 mod plan;
+mod pr;
 mod render;
 mod schema;
 mod util;
@@ -71,6 +73,12 @@ enum Command {
         /// Output dir for artifacts, relative to --repo (written as <id>.json).
         #[arg(long, default_value = "modules/generated")]
         out: PathBuf,
+        /// Open a GitHub PR for each artifact (needs GITHUB_TOKEN; clean tree).
+        #[arg(long)]
+        pr: bool,
+        /// Base branch for PRs (default: main).
+        #[arg(long, default_value = "main")]
+        base: String,
     },
 }
 
@@ -163,7 +171,12 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
-        Command::Run { task: task_id, out } => {
+        Command::Run {
+            task: task_id,
+            out,
+            pr,
+            base,
+        } => {
             let mut config = config::Config::from_env()?;
             config.finalize_reasoning();
             tracing::info!(
@@ -183,6 +196,30 @@ async fn main() -> Result<()> {
             let examples_dir = resolve(&cli.repo, std::path::Path::new("platform-spec/examples"));
             let registry = schema::SchemaRegistry::load_dir(&schemas_dir)?;
             let out_dir = resolve(&cli.repo, &out);
+
+            // --pr: require a token + a clean tree so each PR is scoped to one artifact.
+            let gh = if pr {
+                if !git::is_clean()? {
+                    return Err(anyhow::anyhow!(
+                        "--pr requires a clean working tree; commit or stash first"
+                    ));
+                }
+                let token = std::env::var("GITHUB_TOKEN").map_err(|_| {
+                    anyhow::anyhow!(
+                        "GITHUB_TOKEN is not set (needed for --pr; e.g. $(gh auth token))"
+                    )
+                })?;
+                let repo = github::detect_repo().ok_or_else(|| {
+                    anyhow::anyhow!("could not detect GitHub repo from git origin")
+                })?;
+                Some(github::GitHub::new(token, repo)?)
+            } else {
+                None
+            };
+            let pr_ctx = gh.as_ref().map(|g| (g, base.as_str()));
+            if pr {
+                tracing::info!(base = %base, branch = %git::current_branch()?, "PR mode");
+            }
 
             let ctx = agents::HatContext {
                 llm: &llm,
@@ -209,21 +246,45 @@ async fn main() -> Result<()> {
                     }
                     tracing::info!(task = %task.id, role = %task.role, "dispatching hat");
                     let artifact = agents::run_task(task, &ctx).await?;
+                    let artifact_id = artifact
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("artifact")
+                        .to_string();
                     let file = orchestrator::write_artifact(&out_dir, &artifact)?;
                     println!("wrote {}", file.display());
                     tracing::info!(
                         artifact = %file.display(),
                         "hat produced a schema-validated artifact"
                     );
+                    if let Some((g, b)) = pr_ctx {
+                        let kind = pr::kind_for_role(&task.role);
+                        let inp = pr::PrInput {
+                            task,
+                            artifact_path: file
+                                .to_str()
+                                .with_context(|| format!("non-utf8 path {}", file.display()))?,
+                            artifact_id: &artifact_id,
+                            artifact_kind: kind,
+                            base_branch: b,
+                        };
+                        let outcome = pr::publish_as_pr(g, &inp).await?;
+                        println!(
+                            "pr       #{} {} ({})",
+                            outcome.number, outcome.url, outcome.branch
+                        );
+                    }
                 }
                 None => {
                     tracing::info!("orchestrating first phase (DAG-aware)");
-                    let report = orchestrator::run_phase(&company_plan, &ctx, &out_dir).await?;
+                    let report =
+                        orchestrator::run_phase(&company_plan, &ctx, &out_dir, pr_ctx).await?;
                     println!(
-                        "\nphase run: {} done, {} skipped, {} failed",
+                        "\nphase run: {} done, {} skipped, {} failed, {} prs",
                         report.done.len(),
                         report.skipped.len(),
-                        report.failed.len()
+                        report.failed.len(),
+                        report.prs.len()
                     );
                     if !report.failed.is_empty() {
                         return Err(anyhow::anyhow!("{} task(s) failed", report.failed.len()));

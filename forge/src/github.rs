@@ -114,6 +114,26 @@ struct CreatedIssue {
     number: u64,
 }
 
+#[derive(Serialize)]
+struct CreatePr<'a> {
+    title: &'a str,
+    body: &'a str,
+    head: &'a str,
+    base: &'a str,
+}
+
+#[derive(Deserialize)]
+struct CreatedPr {
+    number: u64,
+    html_url: String,
+}
+
+/// A created pull request (number + web URL).
+pub struct Pr {
+    pub number: u64,
+    pub url: String,
+}
+
 #[derive(Deserialize)]
 struct Milestone {
     number: u64,
@@ -269,6 +289,36 @@ impl GitHub {
             return Ok(c.number);
         }
         bail!("create issue {:?}: {st}", req.title);
+    }
+
+    /// Open a pull request. Returns its number and web URL.
+    pub async fn create_pull_request(
+        &self,
+        title: &str,
+        body: &str,
+        head: &str,
+        base: &str,
+    ) -> Result<Pr> {
+        let req = CreatePr {
+            title,
+            body,
+            head,
+            base,
+        };
+        let resp = self.post(&self.url("pulls"), &req).await?;
+        let st = resp.status();
+        if st.is_success() {
+            let p: CreatedPr = resp.json().await.context("decode created PR")?;
+            return Ok(Pr {
+                number: p.number,
+                url: p.html_url,
+            });
+        }
+        let text = resp.text().await.unwrap_or_default();
+        bail!(
+            "create PR {head}->{base} ({st}): {}",
+            crate::util::truncate(&text, 500)
+        );
     }
 }
 
