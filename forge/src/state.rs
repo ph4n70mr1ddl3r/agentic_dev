@@ -52,6 +52,12 @@ impl State {
                 attempts      INTEGER NOT NULL DEFAULT 0,
                 updated_at    INTEGER NOT NULL,
                 PRIMARY KEY (phase_id, task_id)
+            );
+            CREATE TABLE IF NOT EXISTS phase_gate (
+                phase_id    INTEGER PRIMARY KEY,
+                status      TEXT NOT NULL,
+                approved_at INTEGER,
+                note        TEXT
             );",
         )?;
         Ok(Self { conn })
@@ -203,6 +209,42 @@ impl State {
     }
 }
 
+/// Approval state of a phase gate (ADR-0005).
+#[derive(Debug, Clone)]
+pub struct GateState {
+    pub status: String, // "open" | "approved"
+    pub note: Option<String>,
+}
+
+impl State {
+    pub fn gate_status(&self, phase: usize) -> Result<Option<GateState>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT status, note FROM phase_gate WHERE phase_id = ?1")?;
+        let mut rows = stmt.query_map(params![phase as i64], |r| {
+            Ok(GateState {
+                status: r.get::<_, String>(0)?,
+                note: r.get::<_, Option<String>>(1)?,
+            })
+        })?;
+        match rows.next() {
+            Some(r) => Ok(Some(r?)),
+            None => Ok(None),
+        }
+    }
+
+    /// Mark a phase approved (human gate passed). ADR-0005: no later-phase work
+    /// begins before the prior gate is approved.
+    pub fn approve_phase(&self, phase: usize, note: Option<&str>) -> Result<()> {
+        self.conn.execute(
+            "INSERT OR REPLACE INTO phase_gate (phase_id, status, approved_at, note)
+             VALUES (?1, 'approved', ?2, ?3)",
+            params![phase as i64, Self::now() as i64, note],
+        )?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 impl State {
     pub fn open_memory() -> Result<Self> {
@@ -247,6 +289,18 @@ mod tests {
         assert!(s.done_set(1).unwrap().contains("T1"));
         s.reset_task(1, "T1").unwrap();
         assert!(!s.done_set(1).unwrap().contains("T1"));
+    }
+
+    #[test]
+    fn gate_approve_roundtrip() {
+        let s = State::open_memory().unwrap();
+        assert!(s.gate_status(1).unwrap().is_none());
+        s.approve_phase(1, Some("looks good")).unwrap();
+        let g = s.gate_status(1).unwrap().unwrap();
+        assert_eq!(g.status, "approved");
+        assert_eq!(g.note.as_deref(), Some("looks good"));
+        // gates are per-phase
+        assert!(s.gate_status(2).unwrap().is_none());
     }
 
     #[test]

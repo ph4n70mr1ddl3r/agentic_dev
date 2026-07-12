@@ -10,8 +10,8 @@ artifact-driven, gated workflow defined in the company plan.
 > Architect, Tech Lead, Domain Modeler, QA — produce schema-validated artifacts
 > (6/8 Phase-1 tasks run unattended), DAG-aware, retry-on-rejection, each landing
 > as a reviewable GitHub PR with **`--pr`**; **`forge check`** executes the QA
-> test-plans, and runs are **resumable** (`forge status`, `run --force`). The last
-> two hats come next.
+> test-plans, runs are **resumable** (`forge status`, `run --force`), and phases
+> close behind a **human gate** (`forge gate`). The last two hats come next.
 
 ## Run
 
@@ -83,6 +83,8 @@ GITHUB_TOKEN="$(gh auth token)" cargo run --manifest-path forge/Cargo.toml -- ru
 cargo run --manifest-path forge/Cargo.toml -- check --repo erp modules/generated/entity-schema-financials-conformance.json
 # show persisted progress
 cargo run --manifest-path forge/Cargo.toml -- status --repo erp
+# approve a phase gate (human approval between phases — ADR-0005)
+cargo run --manifest-path forge/Cargo.toml -- gate --repo erp 1 --note "accepted"
 # re-run, ignoring persisted done-state
 cargo run --manifest-path forge/Cargo.toml -- run --repo erp --force
 # artifacts → erp/modules/generated/<id>.json (or a PR with --pr)
@@ -161,7 +163,7 @@ forge/src/
 - [ ] More hats: DevOps, docs — each consumes a task
 - [x] PR write-back (`--pr`): branch → commit artifact → open PR
 - [x] Resumable state store (SQLite): `run` resumes done tasks, `forge status`, `run --force`
-- [ ] Phase gates: halt + `forge gate approve <phase>`
+- [x] Phase gate: `forge gate <phase> [--force --note]` — human approval between phases (ADR-0005)
 
 See the [company brief](../erp/docs/company-brief.md) for the goal and
 constraints, and [ADR-0005](../erp/docs/adr/0005-gated-delivery-and-weak-model-strategy.md)

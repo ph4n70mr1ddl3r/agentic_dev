@@ -94,6 +94,17 @@ enum Command {
     },
     /// Show persisted per-task progress for the phase.
     Status,
+    /// Approve a phase gate (human approval between phases — ADR-0005).
+    Gate {
+        /// Phase number to approve (e.g. 1).
+        phase: usize,
+        /// Optional note recorded with the approval.
+        #[arg(long)]
+        note: Option<String>,
+        /// Approve even if some tasks have failed.
+        #[arg(long)]
+        force: bool,
+    },
 }
 
 #[tokio::main]
@@ -308,6 +319,13 @@ async fn main() -> Result<()> {
                 }
                 None => {
                     tracing::info!("orchestrating first phase (DAG-aware, resumable)");
+                    if let Some(g) = state.gate_status(FIRST_PHASE)? {
+                        if g.status == "approved" {
+                            println!(
+                                "note: phase {FIRST_PHASE} is already approved; re-running anyway."
+                            );
+                        }
+                    }
                     let opts = orchestrator::RunOptions {
                         pr: pr_ctx,
                         state: &state,
@@ -419,6 +437,57 @@ async fn main() -> Result<()> {
                 }
             }
             println!("\n{done} done, {failed} failed, {pending} pending");
+            match state.gate_status(FIRST_PHASE)? {
+                Some(g) if g.status == "approved" => match &g.note {
+                    Some(n) => println!("gate: approved — {n}"),
+                    None => println!("gate: approved"),
+                },
+                _ => println!("gate: open"),
+            }
+            Ok(())
+        }
+        Command::Gate { phase, note, force } => {
+            if phase != FIRST_PHASE {
+                return Err(anyhow::anyhow!(
+                    "only phase {FIRST_PHASE} has a task breakdown so far"
+                ));
+            }
+            let state =
+                state::State::open(&resolve(&cli.repo, std::path::Path::new(".forge/state.db")))?;
+            let plan_path = resolve(&cli.repo, std::path::Path::new("docs/company/plan.json"));
+            let plan_text = std::fs::read_to_string(&plan_path)
+                .map_err(|e| anyhow::anyhow!("reading plan {}: {e}", plan_path.display()))?;
+            let company_plan: plan::CompanyPlan = serde_json::from_str(&plan_text)
+                .with_context(|| format!("parse plan {}", plan_path.display()))?;
+            let tasks = &company_plan.first_phase.tasks;
+            let by_id: std::collections::HashMap<String, state::TaskState> =
+                state.list(phase)?.into_iter().collect();
+            let mut done = 0usize;
+            let mut failed = 0usize;
+            let mut other = 0usize;
+            for t in tasks {
+                match by_id.get(&t.id).map(|s| s.status.as_str()) {
+                    Some("done") => done += 1,
+                    Some("failed") => failed += 1,
+                    _ => other += 1,
+                }
+            }
+            println!(
+                "phase {phase}: {done} done, {failed} failed, {other} not-done (of {} tasks)",
+                tasks.len()
+            );
+            if failed > 0 && !force {
+                return Err(anyhow::anyhow!(
+                    "{failed} task(s) failed; resolve them or pass --force to approve anyway"
+                ));
+            }
+            if other > 0 {
+                println!(
+                    "note: {other} task(s) not done (no hat / pending); approving per human gate (ADR-0005)."
+                );
+            }
+            state.approve_phase(phase, note.as_deref())?;
+            println!("phase {phase} APPROVED — next phase unlocked.");
             Ok(())
         }
     }
