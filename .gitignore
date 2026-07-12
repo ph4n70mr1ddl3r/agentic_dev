@@ -1,0 +1,27 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Rust (forge/)
+**/target/
+
+# Node (erp/)
+**/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/coverage/
+*.log
+
+# Local data / runtime
+**/data/
+tmp/
+*.sqlite
