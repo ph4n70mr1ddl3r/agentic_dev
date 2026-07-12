@@ -5,9 +5,8 @@
 
 `forge` is the executive office of the virtual software company. It is **not**
 part of the ERP product — it operates *on* the [`erp/`](../erp/) repository
-through GitHub. Per the org charter (`erp/docs/governance/org-charter.md`), it
-instantiates the 15 "hats" as AI agents and runs the artifact-driven, gated
-workflow (`erp/docs/governance/contribution-model.md`).
+through GitHub. It instantiates the company's hats as AI agents and drives the
+artifact-driven, gated workflow defined in the company plan.
 
 ## Responsibilities
 
@@ -34,6 +33,6 @@ forge/
     workspace/         mounted erp/ working dir
 ```
 
-See the [project plan](../erp/docs/governance/project-plan.md) for when `forge`
-enters the build, and [ADR-0005](../erp/docs/adr/0005-gated-delivery-and-weak-model-strategy.md)
+See the [company brief](../erp/docs/company-brief.md) for the goal and
+constraints, and [ADR-0005](../erp/docs/adr/0005-gated-delivery-and-weak-model-strategy.md)
 for the weak-model strategy it implements.

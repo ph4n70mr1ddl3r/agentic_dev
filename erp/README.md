@@ -2,65 +2,44 @@
 
 A **metadata-driven** cloud ERP, built end-to-end as if by a virtual software
 company of AI agents. v1 scope: **Financials** and **Supply Chain Management**,
-modeled on **Microsoft Dynamics 365** — whose excellent public documentation is
-used as ground truth by the agents.
+modeled on **Microsoft Dynamics 365** (public docs = ground truth for the agents).
 
-> **Status:** Phase 0 — Foundation ✅ complete · next: Phase 1 — Discovery
+> **Status:** Phase 0 — Foundation **seed** complete. The company plan
+> (organization, roadmap, artifact set, contribution model, task breakdown) is
+> **authored by the CEO hat** via the `forge` harness — not hand-written here.
 
-## What this is
+## Seed
 
-This repository is the **product** built by the virtual company. The company
-itself — an AI-agent harness written in Rust — lives in a separate `forge`
-repository and operates *on* this repo through GitHub (issues, branches, PRs).
+The founders' seed is two things:
 
-The ERP is **model-driven**: a small platform of engines reads metadata
-(entities, fields, forms, workflows, rules, permissions) from the database and
-renders/executes everything. Business modules (General Ledger, Procurement,
-Inventory, …) are **metadata packages**, not bespoke code.
+- **[Company brief](docs/company-brief.md)** — the goal + the hard constraints.
+- **[Decision records (ADRs)](docs/adr/)** — the 5 immutable architectural decisions.
+
+Everything else is produced by the CEO hat and the hats it delegates to, and
+written under `docs/company/`.
 
 ## Architecture in one breath
 
-- **Platform (code, written once):** engines as microservices — `metadata`,
-  `data`, `workflow`, `auth`, `reporting`, `notification`, `audit`, `gateway` —
-  plus one generic frontend shell and an admin "Studio".
-- **Modules (metadata, scalable & parallel):** Financials and Supply Chain
-  packages under `modules/`.
-- **Storage:** Postgres hybrid — a real table per entity + JSONB extras.
-- **Rules & workflow:** JSON-logic conditions + a curated action vocabulary.
-  No arbitrary code execution.
-
-See [`docs/adr/`](docs/adr/) for the reasoning behind every one of these.
+Model-driven: engines read metadata to render UI and execute logic; business
+modules are metadata, not code. Postgres hybrid storage. JSON-logic + curated
+action vocabulary (no code execution anywhere). Multi-company from day one. See
+the [ADRs](docs/adr/) and the [brief](docs/company-brief.md).
 
 ## Repository layout
 
-| Path | Purpose | Phase |
-|---|---|---|
-| `docs/governance/` | Org charter, artifact catalog, project plan, contribution model | 0 |
-| `docs/adr/` | Architecture Decision Records | ongoing |
-| `docs/templates/` | Artifact templates | 0 |
-| `docs/domain/` | D365 reference base, glossary, domain model | 1 |
-| `docs/architecture/` | C4 model, NFRs, integration design | 2 |
-| `platform-spec/` | Metadata JSON schemas — the contract everything depends on | 2 |
-| `services/` | The engines (microservices) | 3 |
-| `frontend/` | Generic ERP shell + Studio | 3 |
-| `modules/financials/`, `modules/supply-chain/` | ERP modules as metadata | 4 |
-| `infra/` | Docker, CI/CD, IaC | 3+ |
-| `tools/` | CLI helpers, metadata loader | 2/3 |
-
-## How work happens
-
-The company runs in gated phases (see
-[`docs/governance/project-plan.md`](docs/governance/project-plan.md)). Each
-artifact is produced on a branch, reviewed, and merged via PR (see
-[`docs/governance/contribution-model.md`](docs/governance/contribution-model.md)).
-
-## Quick links
-
-- [Org & artifact catalog](docs/governance/org-charter.md)
-- [Project plan & phases](docs/governance/project-plan.md)
-- [Decision records (ADRs)](docs/adr/)
+| Path | Purpose |
+|---|---|
+| `docs/company-brief.md` | Founders' seed: goal + constraints |
+| `docs/adr/` | The 5 immutable architecture decision records |
+| `docs/company/` | CEO-authored company plan (org, roadmap, contribution model) — produced by `forge` |
+| `platform-spec/` | Metadata JSON schemas — the contract (Architect-authored) |
+| `services/` | The engines (microservices) |
+| `frontend/` | Generic ERP shell + Studio |
+| `modules/` | ERP modules as metadata (`financials/`, `supply-chain/`) |
+| `infra/` | Docker, CI/CD, observability |
+| `tools/` | CLI helpers (metadata-loader) |
 
 ---
 
-_This project is built by AI agents coordinated by the `forge` harness. See
-`docs/governance/` for how the "company" works._
+_Built by AI agents coordinated by the `forge` harness. See
+[docs/company-brief.md](docs/company-brief.md) for the goal and constraints._

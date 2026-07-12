@@ -9,7 +9,7 @@ agents, talks to GitHub, and enforces an artifact-driven, gated workflow. The
 executing model is a cheap/weak model (DeepSeek V4 Flash); quality comes from
 **process structure**, not model strength.
 
-> **Status:** Phase 0 — Foundation ✅ complete · next: Phase 1 — Discovery
+> **Status:** Phase 0 seed complete — the CEO hat (via `forge`) plans next
 
 ## What's in this repo
 
@@ -36,11 +36,10 @@ a curated D365 reference knowledge base as ground truth. See
 
 ## Quick links
 
-- [Org & artifact catalog](erp/docs/governance/org-charter.md)
-- [Project plan & phases](erp/docs/governance/project-plan.md)
+- [Company brief — the seed](erp/docs/company-brief.md)
 - [Architecture decisions (ADRs)](erp/docs/adr/)
 
 ---
 
-_Built by AI agents coordinated by `forge`. See `erp/docs/governance/` for how
-the "company" works._
+_Built by AI agents coordinated by `forge`. See
+[erp/docs/company-brief.md](erp/docs/company-brief.md) for the goal and constraints._

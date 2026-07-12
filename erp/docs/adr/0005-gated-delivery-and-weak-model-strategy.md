@@ -15,9 +15,9 @@ model intelligence. The project is long-running and must be **resumable**.
 ## Decision
 
 ### 1. Gated delivery
-Phased delivery with **human approval gates** between phases (see
-[project plan](../governance/project-plan.md)). No work from a later phase may
-start before the prior gate is approved. Gate artifacts are explicitly listed.
+Phased delivery with **human approval gates** between phases; no work from a
+later phase may start before the prior gate is approved. Phase goals and exit
+criteria are defined by the CEO hat in the company roadmap.
 
 ### 2. Weak-model mitigations (applied throughout)
 - **Atomic tasks** — one concept/file per issue; explicit inputs and DoD.
@@ -63,6 +63,6 @@ Rejected: too granular and slow; phase gates balance safety with throughput.
 
 ## Compliance / follow-up
 
-- Gate exit checklists live in [project plan](../governance/project-plan.md).
-- Segregation rules live in [contribution model](../governance/contribution-model.md).
+- Phase goals/exit criteria live in the company roadmap (CEO-authored).
+- Author/approver segregation & review loops live in the contribution model (CEO-authored).
 - Reviewer + schema-validation CI is a Phase 2/3 deliverable.
