@@ -11,6 +11,7 @@ use anyhow::{Context, Result};
 use serde_json::Value;
 
 use crate::agents::{has_hat, run_task, HatContext};
+use crate::github::GitHub;
 use crate::issues::slugify;
 use crate::plan::CompanyPlan;
 
@@ -32,6 +33,7 @@ pub struct RunReport {
     pub done: Vec<String>,
     pub skipped: Vec<(String, String)>, // (task_id, reason)
     pub failed: Vec<(String, String)>,
+    pub prs: Vec<(String, String)>, // (task_id, pr_url)
 }
 
 impl RunReport {
@@ -49,6 +51,7 @@ pub async fn run_phase(
     plan: &CompanyPlan,
     ctx: &HatContext<'_>,
     out_dir: &Path,
+    pr: Option<(&GitHub, &str)>,
 ) -> Result<RunReport> {
     let tasks = &plan.first_phase.tasks;
     let mut report = RunReport::default();
@@ -109,8 +112,32 @@ pub async fn run_phase(
             match run_task(task, ctx).await {
                 Ok(artifact) => {
                     let file = write_artifact(out_dir, &artifact)?;
-                    let aid = artifact.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+                    let aid = artifact
+                        .get("id")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("?")
+                        .to_string();
                     println!("done     {id}  -> {} ({aid})", file.display());
+                    if let Some((gh, base)) = pr {
+                        let kind = crate::pr::kind_for_role(&task.role);
+                        let path = file.to_str().unwrap_or("");
+                        let inp = crate::pr::PrInput {
+                            task,
+                            artifact_path: path,
+                            artifact_id: &aid,
+                            artifact_kind: kind,
+                            base_branch: base,
+                        };
+                        match crate::pr::publish_as_pr(gh, &inp).await {
+                            Ok(o) => {
+                                println!("pr       {id}  #{} {} ({})", o.number, o.url, o.branch);
+                                report.prs.push((id.clone(), o.url));
+                            }
+                            Err(e) => {
+                                println!("pr-fail  {id}  ({e})");
+                            }
+                        }
+                    }
                     done.insert(id.clone());
                     report.done.push(id);
                     progress = true;
