@@ -3,6 +3,9 @@
 //! hat, or blocked by un-runnable dependencies, are skipped with a reason. This
 //! is the loop that turns "run one task" into "run the company" (within a phase;
 //! cross-phase work waits on a human gate — ADR-0005).
+//!
+//! State is resumable: tasks recorded as `done` in the [`State`] DB are skipped
+//! (not re-run) unless `force` is set, and each outcome is persisted.
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -14,6 +17,7 @@ use crate::agents::{has_hat, run_task, HatContext};
 use crate::github::GitHub;
 use crate::issues::slugify;
 use crate::plan::CompanyPlan;
+use crate::state::State;
 
 /// Write a validated artifact as `<id>.json` under `out_dir`; returns its path.
 pub fn write_artifact(out_dir: &Path, value: &Value) -> Result<PathBuf> {
@@ -36,31 +40,55 @@ pub struct RunReport {
     pub prs: Vec<(String, String)>, // (task_id, pr_url)
 }
 
-impl RunReport {
-    fn settled(&self, done: &HashSet<String>, id: &str) -> bool {
-        done.contains(id)
-            || self.skipped.iter().any(|(i, _)| i == id)
-            || self.failed.iter().any(|(i, _)| i == id)
-    }
+pub struct RunOptions<'a> {
+    pub pr: Option<(&'a GitHub, &'a str)>,
+    pub state: &'a State,
+    pub phase: usize,
+    pub force: bool,
 }
 
-/// Run the first phase to a fixpoint: repeatedly pick ready tasks (has hat +
-/// deps done) in plan order until no more progress. Then mark anything still
-/// unsettled as skipped (cycle / dead chain).
+/// Run the phase to a fixpoint. Seeds satisfied deps from persisted `done` tasks
+/// (unless `force`), then repeatedly runs ready tasks in plan order, persisting
+/// each outcome. Anything left unsettled is a cycle / dead chain.
 pub async fn run_phase(
     plan: &CompanyPlan,
     ctx: &HatContext<'_>,
-    pr: Option<(&GitHub, &str)>,
+    opts: &RunOptions<'_>,
 ) -> Result<RunReport> {
     let tasks = &plan.first_phase.tasks;
     let mut report = RunReport::default();
-    let mut done: HashSet<String> = HashSet::new();
+
+    // Seed satisfied deps from prior runs (the resumability primitive).
+    let mut done: HashSet<String> = if opts.force {
+        HashSet::new()
+    } else {
+        opts.state.done_set(opts.phase)?
+    };
+    if !opts.force {
+        let resumed: Vec<&str> = tasks
+            .iter()
+            .map(|t| t.id.as_str())
+            .filter(|id| done.contains(*id))
+            .collect();
+        if !resumed.is_empty() {
+            println!(
+                "resume   {} already done: {}",
+                resumed.len(),
+                resumed.join(", ")
+            );
+        }
+    }
+    let mut produced: HashSet<String> = HashSet::new();
 
     loop {
         let mut progress = false;
         for task in tasks {
             let id = task.id.trim().to_string();
-            if report.settled(&done, &id) {
+            let settled = done.contains(&id)
+                || produced.contains(&id)
+                || report.skipped.iter().any(|(i, _)| i == &id)
+                || report.failed.iter().any(|(i, _)| i == &id);
+            if settled {
                 continue;
             }
 
@@ -68,20 +96,24 @@ pub async fn run_phase(
             if !has_hat(&task.role) {
                 let reason = format!("no hat for role {:?}", task.role);
                 println!("skip     {id}  ({reason})");
-                report.skipped.push((id, reason));
+                report.skipped.push((id.clone(), reason.clone()));
+                let _ = opts
+                    .state
+                    .mark_skipped(opts.phase, &task.id, &task.role, &reason);
                 progress = true;
                 continue;
             }
 
-            // Dependency check.
+            // Dependency check (across both this run and prior persisted runs).
             let pending: Vec<&String> = task
                 .depends_on
                 .iter()
-                .filter(|d| !done.contains(d.trim() as &str))
+                .filter(|d| {
+                    let dt = d.trim();
+                    !done.contains(dt) && !produced.contains(dt)
+                })
                 .collect();
             if !pending.is_empty() {
-                // Skip permanently if any pending dep is itself un-runnable
-                // (unknown / no hat / already failed) — waiting would be forever.
                 let dead: Vec<String> = pending
                     .iter()
                     .filter_map(|d| {
@@ -99,10 +131,12 @@ pub async fn run_phase(
                 if !dead.is_empty() {
                     let reason = format!("blocked by un-runnable deps: {}", dead.join(", "));
                     println!("skip     {id}  ({reason})");
-                    report.skipped.push((id, reason));
+                    report.skipped.push((id.clone(), reason.clone()));
+                    let _ = opts
+                        .state
+                        .mark_skipped(opts.phase, &task.id, &task.role, &reason);
                     progress = true;
                 }
-                // Otherwise: wait — its deps are runnable but not done yet.
                 continue;
             }
 
@@ -117,7 +151,7 @@ pub async fn run_phase(
                         .unwrap_or("?")
                         .to_string();
                     println!("done     {id}  -> {} ({aid})", file.display());
-                    if pr.is_none() {
+                    if opts.pr.is_none() {
                         if let Some((name, md)) = crate::agents::render_companion(&artifact) {
                             let _ = std::fs::write(ctx.out_dir.join(&name), md);
                             println!("wrote    {id}  companion {name}");
@@ -140,7 +174,7 @@ pub async fn run_phase(
                             Err(e) => println!("qa       {id}  check error: {e}"),
                         }
                     }
-                    if let Some((gh, base)) = pr {
+                    if let Some((gh, base)) = opts.pr {
                         let kind = crate::pr::kind_for_role(&task.role);
                         let path = file.to_str().unwrap_or("");
                         let inp = crate::pr::PrInput {
@@ -160,6 +194,14 @@ pub async fn run_phase(
                             }
                         }
                     }
+                    let _ = opts.state.mark_done(
+                        opts.phase,
+                        &task.id,
+                        &task.role,
+                        &aid,
+                        &file.to_string_lossy(),
+                    );
+                    produced.insert(id.clone());
                     done.insert(id.clone());
                     report.done.push(id);
                     progress = true;
@@ -167,6 +209,9 @@ pub async fn run_phase(
                 Err(e) => {
                     let msg = e.to_string();
                     println!("FAILED   {id}  ({msg})");
+                    let _ = opts
+                        .state
+                        .mark_failed(opts.phase, &task.id, &task.role, &msg);
                     report.failed.push((id, msg));
                     progress = true;
                 }
@@ -180,7 +225,11 @@ pub async fn run_phase(
     // Anything still unsettled is waiting on deps that never resolved.
     for task in tasks {
         let id = task.id.trim().to_string();
-        if !report.settled(&done, &id) {
+        let settled = done.contains(&id)
+            || produced.contains(&id)
+            || report.skipped.iter().any(|(i, _)| i == &id)
+            || report.failed.iter().any(|(i, _)| i == &id);
+        if !settled {
             let reason = "unresolved dependencies".to_string();
             println!("skip     {id}  ({reason})");
             report.skipped.push((id, reason));

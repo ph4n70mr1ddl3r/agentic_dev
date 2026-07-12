@@ -14,7 +14,10 @@ mod plan;
 mod pr;
 mod render;
 mod schema;
+mod state;
 mod util;
+
+const FIRST_PHASE: usize = 1;
 
 #[derive(Parser)]
 #[command(
@@ -79,6 +82,9 @@ enum Command {
         /// Base branch for PRs (default: main).
         #[arg(long, default_value = "main")]
         base: String,
+        /// Ignore persisted done-state; re-run tasks even if already done.
+        #[arg(long)]
+        force: bool,
     },
     /// Execute a test-plan artifact: validate each assertion's sample against its
     /// schema and report (exits non-zero on any failure).
@@ -86,6 +92,8 @@ enum Command {
         /// Path to a test-plan JSON file, relative to --repo.
         plan: PathBuf,
     },
+    /// Show persisted per-task progress for the phase.
+    Status,
 }
 
 #[tokio::main]
@@ -182,6 +190,7 @@ async fn main() -> Result<()> {
             out,
             pr,
             base,
+            force,
         } => {
             let mut config = config::Config::from_env()?;
             config.finalize_reasoning();
@@ -233,6 +242,8 @@ async fn main() -> Result<()> {
                 examples_dir,
                 out_dir: out_dir.clone(),
             };
+            let state =
+                state::State::open(&resolve(&cli.repo, std::path::Path::new(".forge/state.db")))?;
 
             match task_id {
                 Some(task_id) => {
@@ -287,10 +298,23 @@ async fn main() -> Result<()> {
                             outcome.number, outcome.url, outcome.branch
                         );
                     }
+                    state.mark_done(
+                        FIRST_PHASE,
+                        &task.id,
+                        &task.role,
+                        &artifact_id,
+                        &file.to_string_lossy(),
+                    )?;
                 }
                 None => {
-                    tracing::info!("orchestrating first phase (DAG-aware)");
-                    let report = orchestrator::run_phase(&company_plan, &ctx, pr_ctx).await?;
+                    tracing::info!("orchestrating first phase (DAG-aware, resumable)");
+                    let opts = orchestrator::RunOptions {
+                        pr: pr_ctx,
+                        state: &state,
+                        phase: FIRST_PHASE,
+                        force,
+                    };
+                    let report = orchestrator::run_phase(&company_plan, &ctx, &opts).await?;
                     println!(
                         "\nphase run: {} done, {} skipped, {} failed, {} prs",
                         report.done.len(),
@@ -339,6 +363,63 @@ async fn main() -> Result<()> {
                     report.failed.len()
                 ))
             }
+        }
+        Command::Status => {
+            let plan_path = resolve(&cli.repo, std::path::Path::new("docs/company/plan.json"));
+            let plan_text = std::fs::read_to_string(&plan_path)
+                .map_err(|e| anyhow::anyhow!("reading plan {}: {e}", plan_path.display()))?;
+            let company_plan: plan::CompanyPlan = serde_json::from_str(&plan_text)
+                .with_context(|| format!("parse plan {}", plan_path.display()))?;
+            let state =
+                state::State::open(&resolve(&cli.repo, std::path::Path::new(".forge/state.db")))?;
+            let rows = state.list(FIRST_PHASE)?;
+            let by_id: std::collections::HashMap<String, state::TaskState> =
+                rows.into_iter().collect();
+            let mut done = 0usize;
+            let mut failed = 0usize;
+            let mut pending = 0usize;
+            println!(
+                "phase {FIRST_PHASE} — {} tasks:",
+                company_plan.first_phase.tasks.len()
+            );
+            for t in &company_plan.first_phase.tasks {
+                let title = t.title.trim();
+                match by_id.get(&t.id) {
+                    Some(s) if s.status == "done" => {
+                        done += 1;
+                        println!(
+                            "  done     {}  {}  [{}]",
+                            t.id,
+                            title,
+                            s.artifact.as_deref().unwrap_or("?")
+                        );
+                    }
+                    Some(s) if s.status == "failed" => {
+                        failed += 1;
+                        println!(
+                            "  failed   {}  {}  ({})",
+                            t.id,
+                            title,
+                            s.detail.as_deref().unwrap_or("")
+                        );
+                    }
+                    Some(s) => {
+                        pending += 1;
+                        println!(
+                            "  skip     {}  {}  ({})",
+                            t.id,
+                            title,
+                            s.detail.as_deref().unwrap_or("")
+                        );
+                    }
+                    None => {
+                        pending += 1;
+                        println!("  pending  {}  {}", t.id, title);
+                    }
+                }
+            }
+            println!("\n{done} done, {failed} failed, {pending} pending");
+            Ok(())
         }
     }
 }

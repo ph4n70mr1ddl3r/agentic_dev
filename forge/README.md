@@ -10,7 +10,8 @@ artifact-driven, gated workflow defined in the company plan.
 > Architect, Tech Lead, Domain Modeler, QA — produce schema-validated artifacts
 > (6/8 Phase-1 tasks run unattended), DAG-aware, retry-on-rejection, each landing
 > as a reviewable GitHub PR with **`--pr`**; **`forge check`** executes the QA
-> test-plans. Resumable state and the last two hats come next.
+> test-plans, and runs are **resumable** (`forge status`, `run --force`). The last
+> two hats come next.
 
 ## Run
 
@@ -80,6 +81,10 @@ cargo run --manifest-path forge/Cargo.toml -- run --repo erp T3
 GITHUB_TOKEN="$(gh auth token)" cargo run --manifest-path forge/Cargo.toml -- run --repo erp --pr
 # execute a QA test-plan (validate its assertions)
 cargo run --manifest-path forge/Cargo.toml -- check --repo erp modules/generated/entity-schema-financials-conformance.json
+# show persisted progress
+cargo run --manifest-path forge/Cargo.toml -- status --repo erp
+# re-run, ignoring persisted done-state
+cargo run --manifest-path forge/Cargo.toml -- run --repo erp --force
 # artifacts → erp/modules/generated/<id>.json (or a PR with --pr)
 ```
 
@@ -138,6 +143,7 @@ forge/src/
   agents/tech_lead.rs  workflow-authoring hat (schema-validated)
   agents/domain_modeler.rs  D365 reference-digest hat (schema-validated + markdown)
   agents/qa.rs   QA test-plan hat + check_plan runner (forge check)
+  state.rs      resumable per-task state (SQLite) under <repo>/.forge/state.db
   plan.rs        CompanyPlan serde model
   render.rs      render the plan to markdown
   github.rs      GitHub REST client (issues, labels, milestones)
@@ -154,7 +160,7 @@ forge/src/
 - [x] Mechanical QA gate: test-plan artifacts + `forge check` (executes assertions)
 - [ ] More hats: DevOps, docs — each consumes a task
 - [x] PR write-back (`--pr`): branch → commit artifact → open PR
-- [ ] Resumable state store (SQLite): `run` / `resume` / `status`
+- [x] Resumable state store (SQLite): `run` resumes done tasks, `forge status`, `run --force`
 - [ ] Phase gates: halt + `forge gate approve <phase>`
 
 See the [company brief](../erp/docs/company-brief.md) for the goal and

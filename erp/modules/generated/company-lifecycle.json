@@ -30,9 +30,31 @@
   ],
   "transitions": [
     {
+      "actions": [
+        {
+          "action": "set-field",
+          "field": "status",
+          "value": "Active"
+        },
+        {
+          "action": "send-notification",
+          "template": "company-activated",
+          "to": {
+            "var": "email"
+          }
+        }
+      ],
       "from": [
         "Prospect"
       ],
+      "guard": {
+        "==": [
+          {
+            "var": "creditLimit"
+          },
+          0
+        ]
+      },
       "label": {
         "en": "Activate"
       },
@@ -40,9 +62,24 @@
       "to": "Active"
     },
     {
+      "actions": [
+        {
+          "action": "set-field",
+          "field": "status",
+          "value": "Inactive"
+        }
+      ],
       "from": [
         "Active"
       ],
+      "guard": {
+        "==": [
+          {
+            "var": "balance"
+          },
+          0
+        ]
+      },
       "label": {
         "en": "Deactivate"
       },
@@ -50,13 +87,28 @@
       "to": "Inactive"
     },
     {
+      "actions": [
+        {
+          "action": "set-field",
+          "field": "status",
+          "value": "Active"
+        }
+      ],
       "from": [
         "Inactive"
       ],
-      "label": {
-        "en": "Reactivate"
+      "guard": {
+        "==": [
+          {
+            "var": "balance"
+          },
+          0
+        ]
       },
-      "name": "reactivate",
+      "label": {
+        "en": "Reinstate"
+      },
+      "name": "reinstate",
       "to": "Active"
     }
   ]

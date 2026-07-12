@@ -38,14 +38,6 @@
           "name": "unitOfMeasure",
           "required": true,
           "type": "text"
-        },
-        {
-          "label": {
-            "en": "Stocked Product"
-          },
-          "name": "isStocked",
-          "required": false,
-          "type": "boolean"
         }
       ],
       "label": {
@@ -55,21 +47,15 @@
       "relationships": [
         {
           "cardinality": "one-to-many",
-          "description": "All inventory movements for this product.",
-          "name": "inventoryTransactions",
-          "target": "InventoryTransaction"
+          "description": "Inventory quantities by warehouse.",
+          "name": "inventoryOnHand",
+          "target": "InventoryOnHand"
         },
         {
           "cardinality": "one-to-many",
-          "description": "Purchase order lines referencing this product.",
-          "name": "purchaseOrderLines",
-          "target": "PurchaseOrderLine"
-        },
-        {
-          "cardinality": "one-to-many",
-          "description": "Sales order lines referencing this product.",
-          "name": "salesOrderLines",
-          "target": "SalesOrderLine"
+          "description": "BOM versions for manufactured products.",
+          "name": "billOfMaterials",
+          "target": "BillOfMaterials"
         }
       ],
       "source": "D365 Supply Chain Management > Product information management > Products"
@@ -80,9 +66,9 @@
       "fields": [
         {
           "label": {
-            "en": "Purchase Order Number"
+            "en": "Order Number"
           },
-          "name": "purchaseOrderNumber",
+          "name": "orderNumber",
           "required": true,
           "type": "text"
         },
@@ -90,7 +76,7 @@
           "label": {
             "en": "Vendor"
           },
-          "name": "vendorAccountNumber",
+          "name": "vendorId",
           "required": true,
           "type": "lookup"
         },
@@ -109,14 +95,6 @@
           "name": "status",
           "required": true,
           "type": "picklist"
-        },
-        {
-          "label": {
-            "en": "Total Amount"
-          },
-          "name": "totalAmount",
-          "required": false,
-          "type": "money"
         }
       ],
       "label": {
@@ -126,7 +104,7 @@
       "relationships": [
         {
           "cardinality": "one-to-many",
-          "description": "The individual purchase order lines.",
+          "description": "Individual purchase order lines.",
           "name": "lines",
           "target": "PurchaseOrderLine"
         }
@@ -135,7 +113,7 @@
     },
     {
       "category": "transactional",
-      "description": "A single line item on a purchase order.",
+      "description": "A line item on a purchase order specifying product, quantity, and price.",
       "fields": [
         {
           "label": {
@@ -168,14 +146,6 @@
           "name": "unitPrice",
           "required": true,
           "type": "money"
-        },
-        {
-          "label": {
-            "en": "Received Quantity"
-          },
-          "name": "receivedQuantity",
-          "required": false,
-          "type": "decimal"
         }
       ],
       "label": {
@@ -188,12 +158,6 @@
           "description": "The parent purchase order.",
           "name": "purchaseOrder",
           "target": "PurchaseOrder"
-        },
-        {
-          "cardinality": "many-to-one",
-          "description": "The product being purchased.",
-          "name": "product",
-          "target": "Product"
         }
       ],
       "source": "D365 Supply Chain Management > Procurement and sourcing > Purchase orders > Lines"
@@ -204,9 +168,9 @@
       "fields": [
         {
           "label": {
-            "en": "Sales Order Number"
+            "en": "Order Number"
           },
-          "name": "salesOrderNumber",
+          "name": "orderNumber",
           "required": true,
           "type": "text"
         },
@@ -214,7 +178,7 @@
           "label": {
             "en": "Customer"
           },
-          "name": "customerAccountNumber",
+          "name": "customerId",
           "required": true,
           "type": "lookup"
         },
@@ -233,14 +197,6 @@
           "name": "status",
           "required": true,
           "type": "picklist"
-        },
-        {
-          "label": {
-            "en": "Total Amount"
-          },
-          "name": "totalAmount",
-          "required": false,
-          "type": "money"
         }
       ],
       "label": {
@@ -250,7 +206,7 @@
       "relationships": [
         {
           "cardinality": "one-to-many",
-          "description": "The individual sales order lines.",
+          "description": "Individual sales order lines.",
           "name": "lines",
           "target": "SalesOrderLine"
         }
@@ -259,7 +215,7 @@
     },
     {
       "category": "transactional",
-      "description": "A single line item on a sales order.",
+      "description": "A line item on a sales order specifying product, quantity, and price.",
       "fields": [
         {
           "label": {
@@ -292,14 +248,6 @@
           "name": "unitPrice",
           "required": true,
           "type": "money"
-        },
-        {
-          "label": {
-            "en": "Shipped Quantity"
-          },
-          "name": "shippedQuantity",
-          "required": false,
-          "type": "decimal"
         }
       ],
       "label": {
@@ -312,33 +260,27 @@
           "description": "The parent sales order.",
           "name": "salesOrder",
           "target": "SalesOrder"
-        },
-        {
-          "cardinality": "many-to-one",
-          "description": "The product being sold.",
-          "name": "product",
-          "target": "Product"
         }
       ],
       "source": "D365 Supply Chain Management > Sales and marketing > Sales orders > Lines"
     },
     {
       "category": "transactional",
-      "description": "Records a movement of inventory (receipt, issue, transfer).",
+      "description": "Current inventory quantity of a product at a specific warehouse and location.",
       "fields": [
-        {
-          "label": {
-            "en": "Transaction ID"
-          },
-          "name": "transactionId",
-          "required": true,
-          "type": "guid"
-        },
         {
           "label": {
             "en": "Product"
           },
           "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Warehouse"
+          },
+          "name": "warehouseId",
           "required": true,
           "type": "lookup"
         },
@@ -352,42 +294,26 @@
         },
         {
           "label": {
-            "en": "Direction"
+            "en": "Last Updated"
           },
-          "name": "direction",
-          "required": true,
-          "type": "picklist"
-        },
-        {
-          "label": {
-            "en": "Transaction Date"
-          },
-          "name": "transactionDate",
+          "name": "lastUpdated",
           "required": true,
           "type": "datetime"
-        },
-        {
-          "label": {
-            "en": "Reference Type"
-          },
-          "name": "referenceType",
-          "required": false,
-          "type": "text"
         }
       ],
       "label": {
-        "en": "Inventory Transaction"
+        "en": "Inventory On-Hand"
       },
-      "name": "InventoryTransaction",
+      "name": "InventoryOnHand",
       "relationships": [
         {
           "cardinality": "many-to-one",
-          "description": "The product involved.",
+          "description": "The product.",
           "name": "product",
           "target": "Product"
         }
       ],
-      "source": "D365 Supply Chain Management > Inventory management > Inventory transactions"
+      "source": "D365 Supply Chain Management > Inventory management > Inquiries and reports > On-hand inventory"
     },
     {
       "category": "master",
@@ -422,15 +348,152 @@
         "en": "Warehouse"
       },
       "name": "Warehouse",
+      "source": "D365 Supply Chain Management > Inventory management > Setup > Warehouse"
+    },
+    {
+      "category": "master",
+      "description": "A list of components and quantities required to manufacture a product.",
+      "fields": [
+        {
+          "label": {
+            "en": "BOM ID"
+          },
+          "name": "bomId",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Product"
+          },
+          "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Quantity"
+          },
+          "name": "quantity",
+          "required": true,
+          "type": "decimal"
+        },
+        {
+          "label": {
+            "en": "Valid From"
+          },
+          "name": "validFrom",
+          "required": true,
+          "type": "date"
+        }
+      ],
+      "label": {
+        "en": "Bill of Materials"
+      },
+      "name": "BillOfMaterials",
       "relationships": [
         {
           "cardinality": "one-to-many",
-          "description": "Transactions occurring in this warehouse.",
-          "name": "inventoryTransactions",
-          "target": "InventoryTransaction"
+          "description": "Component lines.",
+          "name": "lines",
+          "target": "BillOfMaterialsLine"
         }
       ],
-      "source": "D365 Supply Chain Management > Inventory management > Warehouses"
+      "source": "D365 Supply Chain Management > Product information management > Bills of materials"
+    },
+    {
+      "category": "master",
+      "description": "A component line in a bill of materials.",
+      "fields": [
+        {
+          "label": {
+            "en": "Line Number"
+          },
+          "name": "lineNumber",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "label": {
+            "en": "Component Product"
+          },
+          "name": "componentProductId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Quantity"
+          },
+          "name": "quantity",
+          "required": true,
+          "type": "decimal"
+        }
+      ],
+      "label": {
+        "en": "Bill of Materials Line"
+      },
+      "name": "BillOfMaterialsLine",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "Parent BOM.",
+          "name": "billOfMaterials",
+          "target": "BillOfMaterials"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Product information management > Bills of materials > Lines"
+    },
+    {
+      "category": "transactional",
+      "description": "An order to manufacture a specific quantity of a product.",
+      "fields": [
+        {
+          "label": {
+            "en": "Production Order Number"
+          },
+          "name": "productionOrderNumber",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Product"
+          },
+          "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Quantity"
+          },
+          "name": "quantity",
+          "required": true,
+          "type": "decimal"
+        },
+        {
+          "label": {
+            "en": "Status"
+          },
+          "name": "status",
+          "required": true,
+          "type": "picklist"
+        }
+      ],
+      "label": {
+        "en": "Production Order"
+      },
+      "name": "ProductionOrder",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The BOM used for production.",
+          "name": "bom",
+          "target": "BillOfMaterials"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Production control > Production orders"
     },
     {
       "category": "master",
@@ -438,9 +501,9 @@
       "fields": [
         {
           "label": {
-            "en": "Vendor Account Number"
+            "en": "Vendor ID"
           },
-          "name": "vendorAccountNumber",
+          "name": "vendorId",
           "required": true,
           "type": "text"
         },
@@ -454,25 +517,17 @@
         },
         {
           "label": {
-            "en": "Currency"
+            "en": "Vendor Group"
           },
-          "name": "currencyCode",
+          "name": "vendorGroup",
           "required": true,
-          "type": "text"
+          "type": "lookup"
         }
       ],
       "label": {
         "en": "Vendor"
       },
       "name": "Vendor",
-      "relationships": [
-        {
-          "cardinality": "one-to-many",
-          "description": "Purchase orders placed with this vendor.",
-          "name": "purchaseOrders",
-          "target": "PurchaseOrder"
-        }
-      ],
       "source": "D365 Supply Chain Management > Procurement and sourcing > Vendors"
     },
     {
@@ -481,9 +536,9 @@
       "fields": [
         {
           "label": {
-            "en": "Customer Account Number"
+            "en": "Customer ID"
           },
-          "name": "customerAccountNumber",
+          "name": "customerId",
           "required": true,
           "type": "text"
         },
@@ -497,25 +552,17 @@
         },
         {
           "label": {
-            "en": "Currency"
+            "en": "Customer Group"
           },
-          "name": "currencyCode",
+          "name": "customerGroup",
           "required": true,
-          "type": "text"
+          "type": "lookup"
         }
       ],
       "label": {
         "en": "Customer"
       },
       "name": "Customer",
-      "relationships": [
-        {
-          "cardinality": "one-to-many",
-          "description": "Sales orders from this customer.",
-          "name": "salesOrders",
-          "target": "SalesOrder"
-        }
-      ],
       "source": "D365 Supply Chain Management > Sales and marketing > Customers"
     }
   ],
@@ -526,25 +573,25 @@
   "name": "D365SupplyChainReference",
   "processes": [
     {
-      "description": "Process of creating, approving, and receiving a purchase order.",
+      "description": "End-to-end process from purchase requisition to vendor payment.",
       "entities": [
         "PurchaseOrder",
         "PurchaseOrderLine",
-        "Vendor",
         "Product",
-        "InventoryTransaction"
+        "Vendor",
+        "InventoryOnHand"
       ],
       "label": {
-        "en": "Purchase Order Procurement"
+        "en": "Procure-to-Pay"
       },
-      "name": "PurchaseOrderProcurement",
+      "name": "ProcureToPay",
       "steps": [
-        "Create purchase order header with vendor and dates",
-        "Add purchase order lines with products and quantities",
-        "Submit for approval",
+        "Create purchase requisition",
+        "Convert to purchase order",
         "Approve purchase order",
-        "Receive products against purchase order lines",
-        "Update inventory transactions with receipt"
+        "Receive products against purchase order",
+        "Record vendor invoice",
+        "Pay vendor"
       ],
       "triggers": [
         "manual",
@@ -552,25 +599,25 @@
       ]
     },
     {
-      "description": "Process of creating, confirming, and shipping a sales order.",
+      "description": "End-to-end process from sales order to customer payment.",
       "entities": [
         "SalesOrder",
         "SalesOrderLine",
-        "Customer",
         "Product",
-        "InventoryTransaction"
+        "Customer",
+        "InventoryOnHand"
       ],
       "label": {
-        "en": "Sales Order Fulfillment"
+        "en": "Order-to-Cash"
       },
-      "name": "SalesOrderFulfillment",
+      "name": "OrderToCash",
       "steps": [
-        "Create sales order header with customer and dates",
-        "Add sales order lines with products and quantities",
-        "Confirm sales order",
+        "Create sales order",
         "Reserve inventory",
         "Pick and pack products",
-        "Ship products and update inventory transactions"
+        "Ship products",
+        "Invoice customer",
+        "Receive payment"
       ],
       "triggers": [
         "manual",
@@ -578,32 +625,35 @@
       ]
     },
     {
-      "description": "Process of moving inventory from one warehouse to another.",
+      "description": "Process to manufacture products from raw materials.",
       "entities": [
-        "InventoryTransaction",
+        "ProductionOrder",
+        "BillOfMaterials",
+        "BillOfMaterialsLine",
         "Product",
-        "Warehouse"
+        "InventoryOnHand"
       ],
       "label": {
-        "en": "Inventory Transfer"
+        "en": "Production Execution"
       },
-      "name": "InventoryTransfer",
+      "name": "ProductionExecution",
       "steps": [
-        "Create transfer order",
-        "Specify source and destination warehouses",
-        "Add products and quantities",
-        "Ship from source warehouse",
-        "Receive at destination warehouse",
-        "Update inventory transactions for both warehouses"
+        "Create production order",
+        "Release production order",
+        "Pick raw materials",
+        "Start production",
+        "Report as finished",
+        "End production order"
       ],
       "triggers": [
-        "manual"
+        "manual",
+        "scheduled"
       ]
     }
   ],
   "rules": [
     {
-      "description": "Inventory quantity for a product cannot go below zero unless configured otherwise.",
+      "description": "Inventory on-hand quantity cannot go below zero.",
       "enforced": "before-update",
       "label": {
         "en": "Negative Inventory Not Allowed"
@@ -612,39 +662,30 @@
       "severity": "error"
     },
     {
-      "description": "Quantity on a purchase order line must be greater than zero.",
+      "description": "Purchase orders above a certain value must be approved before confirmation.",
+      "enforced": "on-submit",
+      "label": {
+        "en": "Purchase Order Approval Required"
+      },
+      "name": "PurchaseOrderApprovalRequired",
+      "severity": "error"
+    },
+    {
+      "description": "Sales order cannot exceed customer's credit limit.",
       "enforced": "before-create",
       "label": {
-        "en": "Purchase Order Line Quantity Positive"
+        "en": "Sales Order Credit Limit Check"
       },
-      "name": "PurchaseOrderLineQuantityPositive",
-      "severity": "error"
+      "name": "SalesOrderCreditLimitCheck",
+      "severity": "warning"
     },
     {
-      "description": "Quantity on a sales order line must be greater than zero.",
+      "description": "A BOM version must have a valid-from date and cannot overlap with another active version for the same product.",
       "enforced": "before-create",
       "label": {
-        "en": "Sales Order Line Quantity Positive"
+        "en": "BOM Version Validity"
       },
-      "name": "SalesOrderLineQuantityPositive",
-      "severity": "error"
-    },
-    {
-      "description": "The received quantity on a purchase order line cannot exceed the ordered quantity.",
-      "enforced": "before-update",
-      "label": {
-        "en": "Received Quantity Cannot Exceed Ordered Quantity"
-      },
-      "name": "ReceivedQuantityCannotExceedOrderedQuantity",
-      "severity": "error"
-    },
-    {
-      "description": "The shipped quantity on a sales order line cannot exceed the ordered quantity.",
-      "enforced": "before-update",
-      "label": {
-        "en": "Shipped Quantity Cannot Exceed Ordered Quantity"
-      },
-      "name": "ShippedQuantityCannotExceedOrderedQuantity",
+      "name": "BOMVersionValidity",
       "severity": "error"
     }
   ],

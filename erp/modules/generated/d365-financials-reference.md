@@ -34,7 +34,7 @@ An individual account in the chart of accounts, used for posting transactions.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `mainAccountId` | text | yes |  |
+| `mainAccount` | text | yes |  |
 | `name` | text | yes |  |
 | `balanceControl` | boolean |  |  |
 
@@ -59,47 +59,23 @@ A single debit or credit line within a journal entry.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `lineNumber` | integer | yes |  |
-| `accountId` | lookup | yes |  |
+| `lineNo` | integer | yes |  |
+| `account` | lookup | yes |  |
 | `debitAmount` | money |  |  |
 | `creditAmount` | money |  |  |
 | `currency` | text |  |  |
 
 **Relationships:** `journalEntry` → JournalEntry (many-to-one); `ledgerAccount` → LedgerAccount (many-to-one)
 
-### GeneralLedger — General Ledger _(transactional)_
+### Customer — Customer _(master)_
 
-The central repository of all financial transactions posted to the ledger.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `transactionId` | guid | yes |  |
-| `postingDate` | date | yes |  |
-| `amount` | money | yes |  |
-| `accountId` | lookup | yes |  |
-
-**Relationships:** `ledgerAccount` → LedgerAccount (many-to-one)
-
-### FiscalPeriod — Fiscal Period _(reference)_
-
-A time period used for financial reporting and closing.
+A person or organization that purchases goods or services on credit.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `periodCode` | text | yes |  |
-| `startDate` | date | yes |  |
-| `endDate` | date | yes |  |
-| `status` | picklist |  |  |
-
-### Currency — Currency _(reference)_
-
-A monetary unit used for transactions and reporting.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `currencyCode` | text | yes |  |
+| `customerId` | text | yes |  |
 | `name` | text | yes |  |
-| `exchangeRate` | decimal |  |  |
+| `creditLimit` | money |  |  |
 
 ### Vendor — Vendor _(master)_
 
@@ -107,66 +83,46 @@ A supplier from whom goods or services are purchased.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `vendorAccount` | text | yes |  |
+| `vendorId` | text | yes |  |
 | `name` | text | yes |  |
-| `currencyId` | lookup |  |  |
+| `paymentTerms` | text |  |  |
 
-### Customer — Customer _(master)_
+### Invoice — Invoice _(transactional)_
 
-A buyer of goods or services.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `customerAccount` | text | yes |  |
-| `name` | text | yes |  |
-| `currencyId` | lookup |  |  |
-
-### PurchaseInvoice — Purchase Invoice _(transactional)_
-
-An invoice received from a vendor for goods or services.
+A document issued by a seller to a buyer for goods or services provided.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `invoiceNumber` | text | yes |  |
-| `vendorId` | lookup | yes |  |
+| `invoiceId` | text | yes |  |
 | `invoiceDate` | date | yes |  |
+| `dueDate` | date | yes |  |
 | `totalAmount` | money | yes |  |
+| `status` | picklist | yes |  |
 
-**Relationships:** `vendor` → Vendor (many-to-one)
-
-### SalesInvoice — Sales Invoice _(transactional)_
-
-An invoice issued to a customer for goods or services.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `invoiceNumber` | text | yes |  |
-| `customerId` | lookup | yes |  |
-| `invoiceDate` | date | yes |  |
-| `totalAmount` | money | yes |  |
-
-**Relationships:** `customer` → Customer (many-to-one)
+**Relationships:** `customer` → Customer (many-to-one); `vendor` → Vendor (many-to-one)
 
 ### Payment — Payment _(transactional)_
 
-A payment made to a vendor or received from a customer.
+A payment made to or received from a customer or vendor.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `paymentId` | guid | yes |  |
+| `paymentId` | text | yes |  |
 | `paymentDate` | date | yes |  |
 | `amount` | money | yes |  |
 | `direction` | picklist | yes |  |
 
-### Budget — Budget _(master)_
+**Relationships:** `customer` → Customer (many-to-one); `vendor` → Vendor (many-to-one)
 
-A financial plan for a specific period, used for control and reporting.
+### GeneralLedger — General Ledger _(reference)_
+
+The central repository of all financial transactions posted from subledgers.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `budgetId` | text | yes |  |
-| `fiscalYear` | integer | yes |  |
-| `status` | picklist |  |  |
+| `transactionId` | guid | yes |  |
+| `postingDate` | date | yes |  |
+| `amount` | money | yes |  |
 
 ## Processes
 
@@ -174,61 +130,34 @@ A financial plan for a specific period, used for control and reporting.
 
 Validate and post a journal entry to the general ledger.
 
-1. Create or open a journal entry
-2. Enter journal lines with debit and credit amounts
-3. Validate the entry balances (debits = credits)
+1. Create journal entry header
+2. Add journal lines with debits and credits
+3. Validate that debits equal credits
 4. Post the journal entry
-5. Update general ledger account balances
+5. Update ledger account balances
 
-### VendorInvoiceProcessing — Vendor Invoice Processing
+### InvoiceProcessing — Invoice Processing
 
-Record and pay a purchase invoice from a vendor.
+Create and post an invoice for a customer or from a vendor.
 
-1. Receive purchase invoice from vendor
-2. Match invoice to purchase order or receipt
-3. Record invoice in accounts payable
-4. Approve invoice for payment
-5. Generate payment to vendor
-6. Post payment and settle invoice
+1. Create invoice header
+2. Add invoice lines
+3. Validate invoice totals
+4. Post the invoice
+5. Update customer/vendor balance
 
-### CustomerInvoiceProcessing — Customer Invoice Processing
+### PaymentSettlement — Payment Settlement
 
-Issue and collect payment for a sales invoice.
+Apply a payment to outstanding invoices.
 
-1. Create sales invoice for customer
-2. Post invoice to accounts receivable
-3. Send invoice to customer
-4. Receive payment from customer
-5. Apply payment to invoice
-6. Post payment and settle invoice
-
-### PeriodClosing — Period Closing
-
-Close a fiscal period and prepare financial statements.
-
-1. Review and post all pending transactions
-2. Perform adjustments (accruals, deferrals)
-3. Revalue foreign currency balances
-4. Run allocation rules
-5. Generate financial reports (trial balance, P&L, balance sheet)
-6. Close the period
-
-### BudgetPlanning — Budget Planning
-
-Create and approve a budget for a fiscal year.
-
-1. Define budget plan structure
-2. Enter budget amounts by account and period
-3. Review and adjust budget
-4. Approve budget
-5. Load budget into general ledger for control
+1. Receive or make payment
+2. Identify open invoices
+3. Apply payment to invoices
+4. Post settlement
+5. Update customer/vendor balances
 
 ## Rules
 
 - **BalancedEntry** _(error, before-post)_ — A journal entry's debits must equal its credits before posting.
-- **AccountTypeValidation** _(warning, before-post)_ — Debits and credits must be posted to appropriate account types (e.g., asset accounts normally have debit balances).
-- **PeriodStatusCheck** _(error, before-post)_ — Transactions can only be posted to open fiscal periods.
-- **CurrencyConsistency** _(error, before-post)_ — All lines in a journal entry must use the same currency unless multicurrency is enabled.
-- **MandatoryFields** _(error, before-post)_ — Required fields (e.g., account, date, amount) must be filled before posting.
-- **BudgetControl** _(error, before-post)_ — Expenditures must not exceed available budget when budget control is active.
-- **InvoiceMatching** _(warning, before-post)_ — Purchase invoice amounts must match purchase order or receipt within tolerance.
+- **CreditLimitCheck** _(warning, before-post)_ — An invoice cannot exceed the customer's credit limit.
+- **RequiredFields** _(error, before-create)_ — Mandatory fields must be filled before saving.

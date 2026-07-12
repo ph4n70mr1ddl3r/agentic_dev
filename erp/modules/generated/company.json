@@ -2,7 +2,7 @@
   "audit": true,
   "category": "organization",
   "companyScoped": false,
-  "description": "Master data entity representing a legal entity or organization. Used as the target for company-scoped transactional entities.",
+  "description": "Master data entity representing a legal entity or organization. All transactional entities reference this via companyId.",
   "fields": [
     {
       "label": {
@@ -37,15 +37,39 @@
         "en": "Base Currency"
       },
       "name": "currency",
+      "picklist": {
+        "defaultValue": "USD",
+        "options": [
+          {
+            "label": {
+              "en": "USD"
+            },
+            "value": "USD"
+          },
+          {
+            "label": {
+              "en": "EUR"
+            },
+            "value": "EUR"
+          },
+          {
+            "label": {
+              "en": "GBP"
+            },
+            "value": "GBP"
+          }
+        ]
+      },
       "required": true,
-      "type": "text"
+      "type": "picklist"
     },
     {
+      "default": true,
       "label": {
-        "en": "Country"
+        "en": "Active"
       },
-      "name": "country",
-      "type": "text"
+      "name": "isActive",
+      "type": "boolean"
     },
     {
       "label": {
