@@ -22,8 +22,15 @@ cargo run --manifest-path forge/Cargo.toml -- ceo --repo erp --write
 
 Environment (see [`forge/.env.example`](.env.example)):
 - `DEEPSEEK_API_KEY` — **required**.
-- `DEEPSEEK_BASE_URL` — default `https://api.deepseek.com`.
-- `DEEPSEEK_MODEL` — default `deepseek-chat`; set to your cheap/flash model id.
+- `DEEPSEEK_BASE_URL` — default `https://api.deepseek.com` (OpenAI-compatible).
+- `DEEPSEEK_MODEL` — default `deepseek-v4-flash` (the cheap model). `deepseek-v4-pro`
+  is the smarter option. (`deepseek-chat`/`deepseek-reasoner` are deprecated
+  2026-07-24.)
+- `DEEPSEEK_THINKING` — `disabled` (default, cheapest) or `enabled` (reasons
+  first; more tokens). Override per-run with `--thinking`. Worth enabling for the
+  CEO/architect hats.
+- `DEEPSEEK_REASONING_EFFORT` — `high`/`max` (only when thinking enabled).
+- `DEEPSEEK_MAX_TOKENS` — default 8192 (prevents JSON truncation).
 
 Without `--write`, the plan is printed as JSON to stdout (useful for inspecting
 before committing). Increase verbosity with `RUST_LOG=forge=debug`.

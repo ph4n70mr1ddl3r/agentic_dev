@@ -33,6 +33,10 @@ enum Command {
         /// Write the plan into the repo (otherwise print JSON to stdout).
         #[arg(long)]
         write: bool,
+        /// Enable DeepSeek thinking mode for this run (slower/more tokens,
+        /// may improve plan quality).
+        #[arg(long)]
+        thinking: bool,
     },
 }
 
@@ -44,11 +48,20 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     match cli.command {
-        Command::Ceo { brief, out, write } => {
-            let config = config::Config::from_env()?;
+        Command::Ceo {
+            brief,
+            out,
+            write,
+            thinking,
+        } => {
+            let mut config = config::Config::from_env()?;
+            if thinking {
+                config.thinking = true;
+            }
             tracing::info!(
                 model = %config.model,
                 base = %config.base_url,
+                thinking = config.thinking,
                 repo = %cli.repo.display(),
                 "running CEO hat"
             );
