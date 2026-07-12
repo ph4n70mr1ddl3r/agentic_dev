@@ -1,0 +1,13 @@
+{
+  "id": "default-status-draft",
+  "name": "DefaultStatusDraft",
+  "label": { "en": "Default status to draft on create" },
+  "entity": "JournalEntry",
+  "trigger": "before-create",
+  "condition": { "!": [ { "var": "status" } ] },
+  "actions": [
+    { "action": "set-field", "field": "status", "value": "draft" }
+  ],
+  "priority": 50,
+  "stopOnFire": false
+}

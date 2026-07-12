@@ -1,0 +1,20 @@
+{
+  "id": "journal-entry-form",
+  "name": "JournalEntryForm",
+  "label": { "en": "Journal Entry" },
+  "entity": "JournalEntry",
+  "sections": [
+    {
+      "name": "header",
+      "label": { "en": "Header" },
+      "columns": 2,
+      "fields": [
+        { "field": "entryNo", "required": true },
+        { "field": "entryDate", "required": true },
+        { "field": "description" },
+        { "field": "status", "readOnly": true },
+        { "field": "totalAmount", "readOnly": true, "visible": { "==": [ { "var": "status" }, "posted" ] } }
+      ]
+    }
+  ]
+}

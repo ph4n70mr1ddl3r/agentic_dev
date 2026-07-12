@@ -1,0 +1,15 @@
+{
+  "id": "journal-entries",
+  "name": "JournalEntries",
+  "label": { "en": "Journal Entries" },
+  "entity": "JournalEntry",
+  "columns": [
+    { "field": "entryNo", "label": { "en": "Number" } },
+    { "field": "entryDate", "label": { "en": "Date" } },
+    { "field": "description", "label": { "en": "Description" } },
+    { "field": "totalAmount", "label": { "en": "Amount" }, "aggregate": "sum" },
+    { "field": "status", "label": { "en": "Status" } }
+  ],
+  "defaultSort": { "field": "entryDate", "dir": "desc" },
+  "pageSize": 50
+}

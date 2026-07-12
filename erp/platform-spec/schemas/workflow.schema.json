@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+  "title": "Workflow",
+  "description": "A state machine over an entity's records. Guards are JSON-logic predicates; transitions and state entry/exit fire curated actions (ADR-0003). Referential integrity (initialState in states, transition from/to in states) is enforced by the loader.",
+  "type": "object",
+  "required": ["id", "name", "label", "entity", "states", "initialState", "transitions"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$ref": "_common.schema.json#/$defs/slug" },
+    "name": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+    "entity": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "description": { "type": "string" },
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "_common.schema.json#/$defs/stateName" },
+          "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+          "terminal": { "type": "boolean", "default": false },
+          "enterActions": { "type": "array", "items": { "$ref": "action.schema.json" } },
+          "exitActions": { "type": "array", "items": { "$ref": "action.schema.json" } }
+        }
+      }
+    },
+    "initialState": { "$ref": "_common.schema.json#/$defs/stateName" },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "_common.schema.json#/$defs/slug" },
+          "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+          "from": { "type": "array", "minItems": 1, "items": { "$ref": "_common.schema.json#/$defs/stateName" } },
+          "to": { "$ref": "_common.schema.json#/$defs/stateName" },
+          "guard": { "$ref": "json-logic.schema.json", "description": "Transition allowed only when this evaluates true." },
+          "actions": { "type": "array", "items": { "$ref": "action.schema.json" } }
+        }
+      }
+    }
+  }
+}

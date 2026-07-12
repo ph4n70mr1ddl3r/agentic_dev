@@ -1,0 +1,33 @@
+{
+  "id": "journal-entry-posting",
+  "name": "JournalEntryPosting",
+  "label": { "en": "Journal Entry Posting" },
+  "entity": "JournalEntry",
+  "description": "Lifecycle of a journal entry from draft to posted.",
+  "states": [
+    { "name": "Draft", "label": { "en": "Draft" } },
+    { "name": "UnderReview", "label": { "en": "Under Review" } },
+    { "name": "Posted", "label": { "en": "Posted" }, "terminal": true }
+  ],
+  "initialState": "Draft",
+  "transitions": [
+    { "name": "submit", "label": { "en": "Submit" }, "from": ["Draft"], "to": "UnderReview" },
+    { "name": "recall", "label": { "en": "Recall" }, "from": ["UnderReview"], "to": "Draft" },
+    {
+      "name": "post",
+      "label": { "en": "Post" },
+      "from": ["UnderReview"],
+      "to": "Posted",
+      "guard": {
+        "and": [
+          { "==": [ { "var": "status" }, "UnderReview" ] },
+          { "<": [ { "var": "totalAmount" }, 100000 ] }
+        ]
+      },
+      "actions": [
+        { "action": "set-field", "field": "status", "value": "posted" },
+        { "action": "post-to-ledger", "entry": { "var": "id" } }
+      ]
+    }
+  ]
+}

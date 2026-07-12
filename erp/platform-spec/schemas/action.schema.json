@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/action.schema.json",
+  "title": "Curated action vocabulary",
+  "description": "The governed, versioned action vocabulary the engine interprets (ADR-0003). Each action is { action, ...args }; the engine never evaluates arbitrary code. Adding a capability = extending this vocabulary (governed: ADR + schema + tests).",
+  "type": "object",
+  "required": ["action"],
+  "oneOf": [
+    {
+      "title": "set-field",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "set-field" },
+        "field": { "$ref": "_common.schema.json#/$defs/fieldName" },
+        "value": { "$ref": "json-logic.schema.json", "description": "Literal or expression." }
+      },
+      "required": ["action", "field", "value"]
+    },
+    {
+      "title": "update-record",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "update-record" },
+        "entity": { "$ref": "_common.schema.json#/$defs/typeName" },
+        "id": { "$ref": "json-logic.schema.json", "description": "Record id to update; defaults to current record." },
+        "fields": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "json-logic.schema.json" } }
+      },
+      "required": ["action", "fields"]
+    },
+    {
+      "title": "create-record",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "create-record" },
+        "entity": { "$ref": "_common.schema.json#/$defs/typeName" },
+        "fields": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "json-logic.schema.json" } }
+      },
+      "required": ["action", "entity", "fields"]
+    },
+    {
+      "title": "send-notification",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "send-notification" },
+        "template": { "type": "string" },
+        "to": { "$ref": "json-logic.schema.json" },
+        "cc": { "$ref": "json-logic.schema.json" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" }
+      },
+      "required": ["action", "to"]
+    },
+    {
+      "title": "call-service",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "call-service" },
+        "service": { "type": "string" },
+        "operation": { "type": "string" },
+        "args": { "type": "object", "additionalProperties": { "$ref": "json-logic.schema.json" } }
+      },
+      "required": ["action", "service", "operation"]
+    },
+    {
+      "title": "assign-user",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "assign-user" },
+        "user": { "$ref": "json-logic.schema.json" },
+        "role": { "type": "string" }
+      },
+      "required": ["action", "user"]
+    },
+    {
+      "title": "transition-workflow",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "transition-workflow" },
+        "to": { "$ref": "_common.schema.json#/$defs/stateName" },
+        "reason": { "type": "string" }
+      },
+      "required": ["action", "to"]
+    },
+    {
+      "title": "start-subflow",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "start-subflow" },
+        "workflow": { "$ref": "_common.schema.json#/$defs/slug" },
+        "args": { "type": "object", "additionalProperties": { "$ref": "json-logic.schema.json" } }
+      },
+      "required": ["action", "workflow"]
+    },
+    {
+      "title": "schedule-job",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "schedule-job" },
+        "job": { "type": "string" },
+        "when": { "$ref": "json-logic.schema.json", "description": "ISO datetime or cron expression as a literal/expression." },
+        "args": { "type": "object", "additionalProperties": { "$ref": "json-logic.schema.json" } }
+      },
+      "required": ["action", "job", "when"]
+    },
+    {
+      "title": "run-report",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "run-report" },
+        "report": { "$ref": "_common.schema.json#/$defs/slug" },
+        "params": { "type": "object", "additionalProperties": { "$ref": "json-logic.schema.json" } },
+        "output": { "type": "string", "enum": ["inline", "file", "email"], "default": "inline" }
+      },
+      "required": ["action", "report"]
+    },
+    {
+      "title": "post-to-ledger",
+      "additionalProperties": false,
+      "properties": {
+        "action": { "const": "post-to-ledger" },
+        "entry": { "$ref": "json-logic.schema.json", "description": "Reference to the ledger entry/lines to post." },
+        "dimensions": { "type": "object", "additionalProperties": { "$ref": "json-logic.schema.json" }, "description": "Financial dimension overrides." }
+      },
+      "required": ["action", "entry"]
+    }
+  ]
+}

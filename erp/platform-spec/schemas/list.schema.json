@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/list.schema.json",
+  "title": "List view",
+  "description": "A list/grid view over an entity, rendered by the generic shell (ADR-0001).",
+  "type": "object",
+  "required": ["id", "name", "label", "entity", "columns"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$ref": "_common.schema.json#/$defs/slug" },
+    "name": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+    "entity": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "description": { "type": "string" },
+    "columns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["field"],
+        "additionalProperties": false,
+        "properties": {
+          "field": { "$ref": "_common.schema.json#/$defs/fieldName" },
+          "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+          "width": { "type": "integer", "minimum": 1 },
+          "sortable": { "type": "boolean", "default": true },
+          "filterable": { "type": "boolean", "default": true },
+          "aggregate": { "type": "string", "enum": ["none", "sum", "avg", "count", "min", "max"], "default": "none" }
+        }
+      }
+    },
+    "defaultSort": {
+      "type": "object",
+      "required": ["field", "dir"],
+      "additionalProperties": false,
+      "properties": {
+        "field": { "$ref": "_common.schema.json#/$defs/fieldName" },
+        "dir": { "type": "string", "enum": ["asc", "desc"] }
+      }
+    },
+    "pageSize": { "type": "integer", "minimum": 1, "default": 50 }
+  }
+}

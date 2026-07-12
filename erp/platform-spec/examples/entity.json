@@ -1,0 +1,44 @@
+{
+  "id": "journal-entry",
+  "name": "JournalEntry",
+  "label": { "en": "Journal Entry" },
+  "description": "A double-entry accounting journal header. Transactional + company-scoped, so it carries companyId.",
+  "scope": "transactional",
+  "companyScoped": true,
+  "audit": true,
+  "timestamps": true,
+  "category": "financials",
+  "fields": [
+    { "name": "id", "type": "guid", "label": { "en": "ID" }, "required": true },
+    {
+      "name": "companyId",
+      "type": "lookup",
+      "label": { "en": "Company" },
+      "required": true,
+      "indexed": true,
+      "lookup": { "target": "Company", "display": "name" }
+    },
+    { "name": "entryNo", "type": "text", "label": { "en": "Entry Number" }, "required": true, "unique": true, "indexed": true },
+    { "name": "entryDate", "type": "date", "label": { "en": "Entry Date" }, "required": true, "indexed": true },
+    { "name": "description", "type": "text", "label": { "en": "Description" } },
+    {
+      "name": "status",
+      "type": "picklist",
+      "label": { "en": "Status" },
+      "required": true,
+      "picklist": {
+        "options": [
+          { "value": "draft", "label": { "en": "Draft" } },
+          { "value": "posted", "label": { "en": "Posted" } }
+        ],
+        "defaultValue": "draft"
+      }
+    },
+    { "name": "totalAmount", "type": "money", "label": { "en": "Total Amount" }, "precision": 18, "scale": 2 },
+    { "name": "extras", "type": "json", "label": { "en": "Extras" }, "promoted": false }
+  ],
+  "indexes": [
+    { "name": "by-company-date", "fields": ["companyId", "entryDate"] },
+    { "name": "by-status", "fields": ["status"] }
+  ]
+}

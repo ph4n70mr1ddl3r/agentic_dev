@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/form.schema.json",
+  "title": "Form",
+  "description": "A form layout over an entity, rendered by the generic shell (ADR-0001). Visibility/enabled can be JSON-logic expressions over the record context.",
+  "type": "object",
+  "required": ["id", "name", "label", "entity", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "$ref": "_common.schema.json#/$defs/slug" },
+    "name": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+    "entity": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "description": { "type": "string" },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "fields"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "$ref": "_common.schema.json#/$defs/slug" },
+          "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+          "columns": { "type": "integer", "minimum": 1, "maximum": 4, "default": 1 },
+          "fields": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["field"],
+              "additionalProperties": false,
+              "properties": {
+                "field": { "$ref": "_common.schema.json#/$defs/fieldName" },
+                "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+                "required": { "type": "boolean" },
+                "readOnly": { "type": "boolean" },
+                "visible": { "$ref": "json-logic.schema.json" },
+                "enabled": { "$ref": "json-logic.schema.json" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

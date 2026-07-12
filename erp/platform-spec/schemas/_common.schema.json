@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/_common.schema.json",
+  "title": "Common definitions",
+  "description": "Shared primitives referenced across the platform-spec schemas. Not validated against directly.",
+  "$defs": {
+    "localizedText": {
+      "type": "object",
+      "description": "A label/description keyed by locale (BCP-47 short tag, e.g. en, fr). At least one entry required.",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "typeName": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]*$",
+      "description": "PascalCase type name, e.g. JournalEntry, GLAccount."
+    },
+    "fieldName": {
+      "type": "string",
+      "pattern": "^[a-z][A-Za-z0-9]*$",
+      "description": "camelCase field name, e.g. companyId, postingDate."
+    },
+    "stateName": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "description": "Workflow state name, e.g. Draft, UnderReview."
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "kebab-case id, e.g. gl-account, journal-entry."
+    }
+  }
+}

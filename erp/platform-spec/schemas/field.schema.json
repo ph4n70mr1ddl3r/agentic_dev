@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/field.schema.json",
+  "title": "Field",
+  "description": "A single field declaration on an entity. Maps to a typed Postgres column when 'promoted' is true, otherwise to an extras-JSONB slot (ADR-0002).",
+  "type": "object",
+  "required": ["name", "label", "type"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "$ref": "_common.schema.json#/$defs/fieldName" },
+    "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+    "description": { "type": "string" },
+    "type": { "$ref": "#/$defs/fieldType" },
+    "required": { "type": "boolean", "default": false },
+    "unique": { "type": "boolean", "default": false },
+    "indexed": { "type": "boolean", "default": false, "description": "Generate a Postgres index (ADR-0002)." },
+    "promoted": { "type": "boolean", "default": true, "description": "true = real typed column; false = stored in extras JSONB (ADR-0002)." },
+    "audit": { "type": "boolean", "default": false, "description": "Track per-field changes in the audit log." },
+    "default": { "description": "Default value, type-coerced by 'type'." },
+    "picklist": {
+      "type": "object",
+      "required": ["options"],
+      "properties": {
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["value", "label"],
+            "additionalProperties": false,
+            "properties": {
+              "value": { "type": "string" },
+              "label": { "$ref": "_common.schema.json#/$defs/localizedText" }
+            }
+          }
+        },
+        "defaultValue": { "type": "string" }
+      }
+    },
+    "lookup": {
+      "type": "object",
+      "required": ["target"],
+      "additionalProperties": false,
+      "properties": {
+        "target": { "$ref": "_common.schema.json#/$defs/typeName", "description": "Target entity type name, e.g. Company." },
+        "display": { "$ref": "_common.schema.json#/$defs/fieldName", "description": "Field on the target used for display, e.g. name." }
+      }
+    },
+    "precision": { "type": "integer", "minimum": 1 },
+    "scale": { "type": "integer", "minimum": 0 }
+  },
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "picklist" } } }, "then": { "required": ["picklist"] } },
+    { "if": { "properties": { "type": { "const": "lookup" } } }, "then": { "required": ["lookup"] } },
+    { "if": { "properties": { "type": { "enum": ["decimal", "money"] } } }, "then": { "required": ["precision", "scale"] } }
+  ],
+  "$defs": {
+    "fieldType": {
+      "type": "string",
+      "enum": ["text", "integer", "decimal", "money", "boolean", "date", "datetime", "time", "picklist", "lookup", "guid", "json"]
+    }
+  }
+}

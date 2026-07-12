@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/json-logic.schema.json",
+  "title": "JSON-logic subset",
+  "description": "The deterministic JSON-logic subset used for conditions and field formulas (ADR-0003). The engine interprets ONLY these operators; there is no arbitrary code evaluation. Validates a single term at the root. Operator groups use additionalProperties:false + minProperties:1 so unknown operators are rejected.",
+  "$ref": "#/$defs/term",
+  "$defs": {
+    "term": {
+      "oneOf": [
+        { "type": ["string", "number", "boolean", "null"] },
+        { "$ref": "#/$defs/var" },
+        { "$ref": "#/$defs/comparison" },
+        { "$ref": "#/$defs/logic" },
+        { "$ref": "#/$defs/arithmetic" },
+        { "$ref": "#/$defs/stringOp" },
+        { "$ref": "#/$defs/control" },
+        { "type": "array", "items": { "$ref": "#/$defs/term" } }
+      ]
+    },
+    "var": {
+      "type": "object",
+      "required": ["var"],
+      "additionalProperties": false,
+      "properties": { "var": { "type": ["string", "null"] } }
+    },
+    "binaryArgs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/term" },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "comparison": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "==": { "$ref": "#/$defs/binaryArgs" },
+        "!=": { "$ref": "#/$defs/binaryArgs" },
+        "===": { "$ref": "#/$defs/binaryArgs" },
+        "!==": { "$ref": "#/$defs/binaryArgs" },
+        "<": { "$ref": "#/$defs/binaryArgs" },
+        "<=": { "$ref": "#/$defs/binaryArgs" },
+        ">": { "$ref": "#/$defs/binaryArgs" },
+        ">=": { "$ref": "#/$defs/binaryArgs" }
+      }
+    },
+    "logic": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "and": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 1 },
+        "or": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 1 },
+        "!": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 1, "maxItems": 1 }
+      }
+    },
+    "arithmetic": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "+": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 1 },
+        "-": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 1 },
+        "*": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 1 },
+        "/": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 2, "maxItems": 2 },
+        "%": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 2, "maxItems": 2 }
+      }
+    },
+    "stringOp": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "cat": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 1 },
+        "in": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 2, "maxItems": 2 }
+      }
+    },
+    "control": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "?": { "type": "array", "items": { "$ref": "#/$defs/term" }, "minItems": 3, "maxItems": 3 }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/relationship.schema.json",
+  "title": "Relationship",
+  "description": "An explicit relationship between two entities. Lookup fields imply many-to-one; explicit relationships cover the rest (e.g. many-to-many junctions).",
+  "type": "object",
+  "required": ["name", "type", "from", "to"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "$ref": "_common.schema.json#/$defs/fieldName" },
+    "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+    "type": { "type": "string", "enum": ["one-to-many", "many-to-one", "many-to-many"] },
+    "from": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "to": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "fromField": { "$ref": "_common.schema.json#/$defs/fieldName", "description": "Foreign-key field on the 'from' side." },
+    "toField": { "$ref": "_common.schema.json#/$defs/fieldName", "default": "id" },
+    "cascade": { "type": "string", "enum": ["none", "restrict", "cascade", "set-null"], "default": "restrict" },
+    "description": { "type": "string" }
+  }
+}
