@@ -33,10 +33,10 @@ enum Command {
         /// Write the plan into the repo (otherwise print JSON to stdout).
         #[arg(long)]
         write: bool,
-        /// Enable DeepSeek thinking mode for this run (slower/more tokens,
-        /// may improve plan quality).
+        /// Disable DeepSeek thinking mode. The CEO thinks by default; pass this
+        /// to run the cheaper non-thinking path.
         #[arg(long)]
-        thinking: bool,
+        no_thinking: bool,
     },
 }
 
@@ -52,11 +52,13 @@ async fn main() -> Result<()> {
             brief,
             out,
             write,
-            thinking,
+            no_thinking,
         } => {
             let mut config = config::Config::from_env()?;
-            if thinking {
-                config.thinking = true;
+            // The CEO thinks by default (one-shot planning; quality > cost here).
+            config.thinking = !no_thinking;
+            if config.thinking && config.reasoning_effort.is_none() {
+                config.reasoning_effort = Some("high".into());
             }
             tracing::info!(
                 model = %config.model,

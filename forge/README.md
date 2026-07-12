@@ -16,8 +16,9 @@ artifact-driven, gated workflow defined in the company plan.
 # 1. configure (copy and fill in your DeepSeek key)
 cp forge/.env.example forge/.env   # or just export DEEPSEEK_API_KEY=...
 
-# 2. from the repo root, run the CEO
+# 2. from the repo root, run the CEO (uses thinking mode by default)
 cargo run --manifest-path forge/Cargo.toml -- ceo --repo erp --write
+# add --no-thinking for the cheaper non-thinking path
 ```
 
 Environment (see [`forge/.env.example`](.env.example)):
@@ -26,9 +27,9 @@ Environment (see [`forge/.env.example`](.env.example)):
 - `DEEPSEEK_MODEL` — default `deepseek-v4-flash` (the cheap model). `deepseek-v4-pro`
   is the smarter option. (`deepseek-chat`/`deepseek-reasoner` are deprecated
   2026-07-24.)
-- `DEEPSEEK_THINKING` — `disabled` (default, cheapest) or `enabled` (reasons
-  first; more tokens). Override per-run with `--thinking`. Worth enabling for the
-  CEO/architect hats.
+- `DEEPSEEK_THINKING` — `disabled` (default for future hats, cheapest) or `enabled`.
+  Note: the **CEO thinks by default**; pass `ceo --no-thinking` to force the
+  cheap path for the CEO.
 - `DEEPSEEK_REASONING_EFFORT` — `high`/`max` (only when thinking enabled).
 - `DEEPSEEK_MAX_TOKENS` — default 8192 (prevents JSON truncation).
 
