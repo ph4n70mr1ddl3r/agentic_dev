@@ -1,0 +1,964 @@
+{
+  "$kind": "test-plan",
+  "area": "financials",
+  "assertions": [
+    {
+      "expect": "valid",
+      "name": "represents-company",
+      "rationale": "The entity schema must represent a D365 Company (legal entity / master data).",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Name"
+            },
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Base Currency"
+            },
+            "name": "baseCurrency",
+            "type": "text"
+          }
+        ],
+        "id": "company",
+        "label": {
+          "en": "Company"
+        },
+        "name": "Company",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/Company"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-chart-of-accounts",
+      "rationale": "The entity schema must represent a Chart of Accounts (master data with picklist).",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Account ID"
+            },
+            "name": "accountId",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Account Name"
+            },
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Account Type"
+            },
+            "name": "type",
+            "picklist": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Asset"
+                  },
+                  "value": "asset"
+                },
+                {
+                  "label": {
+                    "en": "Liability"
+                  },
+                  "value": "liability"
+                }
+              ]
+            },
+            "type": "picklist"
+          }
+        ],
+        "id": "chart-of-accounts",
+        "label": {
+          "en": "Chart of Accounts"
+        },
+        "name": "ChartOfAccounts",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/ChartOfAccounts"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-ledger-account",
+      "rationale": "The entity schema must represent a Ledger Account (master data with boolean).",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Main Account ID"
+            },
+            "name": "mainAccountId",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Account Name"
+            },
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Balance Control"
+            },
+            "name": "balanceControl",
+            "type": "boolean"
+          }
+        ],
+        "id": "ledger-account",
+        "label": {
+          "en": "Ledger Account"
+        },
+        "name": "LedgerAccount",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/LedgerAccount"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-journal-entry",
+      "rationale": "The entity schema must represent a Journal Entry (transactional, company-scoped, with picklist).",
+      "sample": {
+        "companyScoped": true,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Company"
+            },
+            "lookup": {
+              "target": "Company"
+            },
+            "name": "companyId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Entry Number"
+            },
+            "name": "entryNo",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Entry Date"
+            },
+            "name": "entryDate",
+            "type": "date"
+          },
+          {
+            "label": {
+              "en": "Status"
+            },
+            "name": "status",
+            "picklist": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Draft"
+                  },
+                  "value": "draft"
+                },
+                {
+                  "label": {
+                    "en": "Posted"
+                  },
+                  "value": "posted"
+                }
+              ]
+            },
+            "type": "picklist"
+          }
+        ],
+        "id": "journal-entry",
+        "label": {
+          "en": "Journal Entry"
+        },
+        "name": "JournalEntry",
+        "scope": "transactional"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/JournalEntry"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-journal-line",
+      "rationale": "The entity schema must represent a Journal Line (transactional, company-scoped, with money fields).",
+      "sample": {
+        "companyScoped": true,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Company"
+            },
+            "lookup": {
+              "target": "Company"
+            },
+            "name": "companyId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Line Number"
+            },
+            "name": "lineNumber",
+            "type": "integer"
+          },
+          {
+            "label": {
+              "en": "Account"
+            },
+            "lookup": {
+              "target": "LedgerAccount"
+            },
+            "name": "accountId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Debit Amount"
+            },
+            "name": "debitAmount",
+            "precision": 18,
+            "scale": 2,
+            "type": "money"
+          },
+          {
+            "label": {
+              "en": "Credit Amount"
+            },
+            "name": "creditAmount",
+            "precision": 18,
+            "scale": 2,
+            "type": "money"
+          },
+          {
+            "label": {
+              "en": "Currency"
+            },
+            "name": "currency",
+            "type": "text"
+          }
+        ],
+        "id": "journal-line",
+        "label": {
+          "en": "Journal Line"
+        },
+        "name": "JournalLine",
+        "scope": "transactional"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/JournalLine"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-general-ledger",
+      "rationale": "The entity schema must represent a General Ledger transaction (transactional, company-scoped, with money and lookup).",
+      "sample": {
+        "companyScoped": true,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Company"
+            },
+            "lookup": {
+              "target": "Company"
+            },
+            "name": "companyId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Transaction ID"
+            },
+            "name": "transactionId",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Posting Date"
+            },
+            "name": "postingDate",
+            "type": "date"
+          },
+          {
+            "label": {
+              "en": "Amount"
+            },
+            "name": "amount",
+            "precision": 18,
+            "scale": 2,
+            "type": "money"
+          },
+          {
+            "label": {
+              "en": "Account"
+            },
+            "lookup": {
+              "target": "LedgerAccount"
+            },
+            "name": "accountId",
+            "type": "lookup"
+          }
+        ],
+        "id": "general-ledger",
+        "label": {
+          "en": "General Ledger"
+        },
+        "name": "GeneralLedger",
+        "scope": "transactional"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/GeneralLedger"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-fiscal-period",
+      "rationale": "The entity schema must represent a Fiscal Period (master data with dates and picklist).",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Period Code"
+            },
+            "name": "periodCode",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Start Date"
+            },
+            "name": "startDate",
+            "type": "date"
+          },
+          {
+            "label": {
+              "en": "End Date"
+            },
+            "name": "endDate",
+            "type": "date"
+          },
+          {
+            "label": {
+              "en": "Status"
+            },
+            "name": "status",
+            "picklist": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Open"
+                  },
+                  "value": "open"
+                },
+                {
+                  "label": {
+                    "en": "Closed"
+                  },
+                  "value": "closed"
+                }
+              ]
+            },
+            "type": "picklist"
+          }
+        ],
+        "id": "fiscal-period",
+        "label": {
+          "en": "Fiscal Period"
+        },
+        "name": "FiscalPeriod",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/FiscalPeriod"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-currency",
+      "rationale": "The entity schema must represent a Currency (master data with decimal field).",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Currency Code"
+            },
+            "name": "currencyCode",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Name"
+            },
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Exchange Rate"
+            },
+            "name": "exchangeRate",
+            "precision": 18,
+            "scale": 6,
+            "type": "decimal"
+          }
+        ],
+        "id": "currency",
+        "label": {
+          "en": "Currency"
+        },
+        "name": "Currency",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/Currency"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-vendor",
+      "rationale": "The entity schema must represent a Vendor (master data with lookup).",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Vendor Account"
+            },
+            "name": "vendorAccount",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Name"
+            },
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Currency"
+            },
+            "lookup": {
+              "target": "Currency"
+            },
+            "name": "currencyId",
+            "type": "lookup"
+          }
+        ],
+        "id": "vendor",
+        "label": {
+          "en": "Vendor"
+        },
+        "name": "Vendor",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/Vendor"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-customer",
+      "rationale": "The entity schema must represent a Customer (master data with lookup).",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Customer Account"
+            },
+            "name": "customerAccount",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Name"
+            },
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Currency"
+            },
+            "lookup": {
+              "target": "Currency"
+            },
+            "name": "currencyId",
+            "type": "lookup"
+          }
+        ],
+        "id": "customer",
+        "label": {
+          "en": "Customer"
+        },
+        "name": "Customer",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/Customer"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-purchase-invoice",
+      "rationale": "The entity schema must represent a Purchase Invoice (transactional, company-scoped, with money and lookups).",
+      "sample": {
+        "companyScoped": true,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Company"
+            },
+            "lookup": {
+              "target": "Company"
+            },
+            "name": "companyId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Invoice Number"
+            },
+            "name": "invoiceNumber",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Vendor"
+            },
+            "lookup": {
+              "target": "Vendor"
+            },
+            "name": "vendorId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Invoice Date"
+            },
+            "name": "invoiceDate",
+            "type": "date"
+          },
+          {
+            "label": {
+              "en": "Total Amount"
+            },
+            "name": "totalAmount",
+            "precision": 18,
+            "scale": 2,
+            "type": "money"
+          }
+        ],
+        "id": "purchase-invoice",
+        "label": {
+          "en": "Purchase Invoice"
+        },
+        "name": "PurchaseInvoice",
+        "scope": "transactional"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/PurchaseInvoice"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-sales-invoice",
+      "rationale": "The entity schema must represent a Sales Invoice (transactional, company-scoped, with money and lookups).",
+      "sample": {
+        "companyScoped": true,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Company"
+            },
+            "lookup": {
+              "target": "Company"
+            },
+            "name": "companyId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Invoice Number"
+            },
+            "name": "invoiceNumber",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Customer"
+            },
+            "lookup": {
+              "target": "Customer"
+            },
+            "name": "customerId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Invoice Date"
+            },
+            "name": "invoiceDate",
+            "type": "date"
+          },
+          {
+            "label": {
+              "en": "Total Amount"
+            },
+            "name": "totalAmount",
+            "precision": 18,
+            "scale": 2,
+            "type": "money"
+          }
+        ],
+        "id": "sales-invoice",
+        "label": {
+          "en": "Sales Invoice"
+        },
+        "name": "SalesInvoice",
+        "scope": "transactional"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/SalesInvoice"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-payment",
+      "rationale": "The entity schema must represent a Payment (transactional, company-scoped, with money and picklist).",
+      "sample": {
+        "companyScoped": true,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Company"
+            },
+            "lookup": {
+              "target": "Company"
+            },
+            "name": "companyId",
+            "type": "lookup"
+          },
+          {
+            "label": {
+              "en": "Payment ID"
+            },
+            "name": "paymentId",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Payment Date"
+            },
+            "name": "paymentDate",
+            "type": "date"
+          },
+          {
+            "label": {
+              "en": "Amount"
+            },
+            "name": "amount",
+            "precision": 18,
+            "scale": 2,
+            "type": "money"
+          },
+          {
+            "label": {
+              "en": "Direction"
+            },
+            "name": "direction",
+            "picklist": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Incoming"
+                  },
+                  "value": "incoming"
+                },
+                {
+                  "label": {
+                    "en": "Outgoing"
+                  },
+                  "value": "outgoing"
+                }
+              ]
+            },
+            "type": "picklist"
+          }
+        ],
+        "id": "payment",
+        "label": {
+          "en": "Payment"
+        },
+        "name": "Payment",
+        "scope": "transactional"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/Payment"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-budget",
+      "rationale": "The entity schema must represent a Budget (master data with integer and picklist).",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Budget ID"
+            },
+            "name": "budgetId",
+            "type": "text"
+          },
+          {
+            "label": {
+              "en": "Fiscal Year"
+            },
+            "name": "fiscalYear",
+            "type": "integer"
+          },
+          {
+            "label": {
+              "en": "Status"
+            },
+            "name": "status",
+            "picklist": {
+              "options": [
+                {
+                  "label": {
+                    "en": "Draft"
+                  },
+                  "value": "draft"
+                },
+                {
+                  "label": {
+                    "en": "Approved"
+                  },
+                  "value": "approved"
+                }
+              ]
+            },
+            "type": "picklist"
+          }
+        ],
+        "id": "budget",
+        "label": {
+          "en": "Budget"
+        },
+        "name": "Budget",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "d365-financials-reference/Budget"
+    },
+    {
+      "expect": "invalid",
+      "name": "rejects-transactional-without-company-id",
+      "rationale": "A transactional, company-scoped entity must declare a companyId lookup field targeting Company (ADR-0004).",
+      "sample": {
+        "companyScoped": true,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Entry Number"
+            },
+            "name": "entryNo",
+            "type": "text"
+          }
+        ],
+        "id": "bad-journal",
+        "label": {
+          "en": "Bad Journal"
+        },
+        "name": "BadJournal",
+        "scope": "transactional"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "constraint:ADR-0004"
+    },
+    {
+      "expect": "invalid",
+      "name": "rejects-missing-id-field",
+      "rationale": "Every entity must have a field named 'id' of type 'guid'.",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "Name"
+            },
+            "name": "name",
+            "type": "text"
+          }
+        ],
+        "id": "no-id-entity",
+        "label": {
+          "en": "No ID Entity"
+        },
+        "name": "NoIdEntity",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "constraint:entity-requires-id-field"
+    },
+    {
+      "expect": "invalid",
+      "name": "rejects-picklist-without-options",
+      "rationale": "Picklist fields must have a non-empty 'options' array.",
+      "sample": {
+        "companyScoped": false,
+        "fields": [
+          {
+            "label": {
+              "en": "ID"
+            },
+            "name": "id",
+            "type": "guid"
+          },
+          {
+            "label": {
+              "en": "Status"
+            },
+            "name": "status",
+            "picklist": {
+              "options": []
+            },
+            "type": "picklist"
+          }
+        ],
+        "id": "bad-picklist",
+        "label": {
+          "en": "Bad Picklist"
+        },
+        "name": "BadPicklist",
+        "scope": "master"
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "source": "constraint:picklist-options-required"
+    }
+  ],
+  "description": "Checks that entity.schema.json can represent the core Dynamics 365 Financials concepts, and rejects violations of key constraints.",
+  "id": "entity-schema-financials-conformance",
+  "label": {
+    "en": "Entity schema — Financials conformance"
+  },
+  "name": "EntitySchemaFinancialsConformance",
+  "reference": "d365-financials-reference",
+  "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json"
+}

@@ -32,13 +32,13 @@
     },
     {
       "category": "master",
-      "description": "A single account in the chart of accounts used for posting.",
+      "description": "The structured list of all general ledger accounts used by a company.",
       "fields": [
         {
           "label": {
-            "en": "Account Number"
+            "en": "Account ID"
           },
-          "name": "accountNumber",
+          "name": "accountId",
           "required": true,
           "type": "text"
         },
@@ -60,10 +60,52 @@
         }
       ],
       "label": {
-        "en": "Main Account"
+        "en": "Chart of Accounts"
+      },
+      "name": "ChartOfAccounts",
+      "source": "D365 Finance > General ledger > Chart of accounts"
+    },
+    {
+      "category": "master",
+      "description": "An individual account in the chart of accounts, used for posting transactions.",
+      "fields": [
+        {
+          "label": {
+            "en": "Main Account ID"
+          },
+          "name": "mainAccountId",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Account Name"
+          },
+          "name": "name",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Balance Control"
+          },
+          "name": "balanceControl",
+          "type": "boolean"
+        }
+      ],
+      "label": {
+        "en": "Ledger Account"
       },
       "name": "LedgerAccount",
-      "source": "D365 Finance > General ledger > Chart of accounts"
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The chart of accounts this account belongs to.",
+          "name": "chartOfAccounts",
+          "target": "ChartOfAccounts"
+        }
+      ],
+      "source": "D365 Finance > General ledger > Main accounts"
     },
     {
       "category": "transactional",
@@ -124,7 +166,7 @@
           "label": {
             "en": "Line Number"
           },
-          "name": "lineNo",
+          "name": "lineNumber",
           "required": true,
           "type": "integer"
         },
@@ -152,9 +194,9 @@
         },
         {
           "label": {
-            "en": "Description"
+            "en": "Currency"
           },
-          "name": "description",
+          "name": "currency",
           "type": "text"
         }
       ],
@@ -171,22 +213,149 @@
         },
         {
           "cardinality": "many-to-one",
-          "description": "The account being debited or credited.",
+          "description": "The ledger account being debited or credited.",
           "name": "ledgerAccount",
           "target": "LedgerAccount"
         }
       ],
-      "source": "D365 Finance > General ledger > Journal entries"
+      "source": "D365 Finance > General ledger > Journal lines"
     },
     {
-      "category": "master",
-      "description": "A supplier from whom goods or services are procured.",
+      "category": "transactional",
+      "description": "The central repository of all financial transactions posted to the ledger.",
       "fields": [
         {
           "label": {
-            "en": "Vendor Account Number"
+            "en": "Transaction ID"
           },
-          "name": "vendorAccountNumber",
+          "name": "transactionId",
+          "required": true,
+          "type": "guid"
+        },
+        {
+          "label": {
+            "en": "Posting Date"
+          },
+          "name": "postingDate",
+          "required": true,
+          "type": "date"
+        },
+        {
+          "label": {
+            "en": "Amount"
+          },
+          "name": "amount",
+          "required": true,
+          "type": "money"
+        },
+        {
+          "label": {
+            "en": "Account"
+          },
+          "name": "accountId",
+          "required": true,
+          "type": "lookup"
+        }
+      ],
+      "label": {
+        "en": "General Ledger"
+      },
+      "name": "GeneralLedger",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The account affected by this transaction.",
+          "name": "ledgerAccount",
+          "target": "LedgerAccount"
+        }
+      ],
+      "source": "D365 Finance > General ledger > General ledger transactions"
+    },
+    {
+      "category": "reference",
+      "description": "A time period used for financial reporting and closing.",
+      "fields": [
+        {
+          "label": {
+            "en": "Period Code"
+          },
+          "name": "periodCode",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Start Date"
+          },
+          "name": "startDate",
+          "required": true,
+          "type": "date"
+        },
+        {
+          "label": {
+            "en": "End Date"
+          },
+          "name": "endDate",
+          "required": true,
+          "type": "date"
+        },
+        {
+          "label": {
+            "en": "Status"
+          },
+          "name": "status",
+          "type": "picklist"
+        }
+      ],
+      "label": {
+        "en": "Fiscal Period"
+      },
+      "name": "FiscalPeriod",
+      "source": "D365 Finance > General ledger > Fiscal calendars"
+    },
+    {
+      "category": "reference",
+      "description": "A monetary unit used for transactions and reporting.",
+      "fields": [
+        {
+          "label": {
+            "en": "Currency Code"
+          },
+          "name": "currencyCode",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Name"
+          },
+          "name": "name",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Exchange Rate"
+          },
+          "name": "exchangeRate",
+          "type": "decimal"
+        }
+      ],
+      "label": {
+        "en": "Currency"
+      },
+      "name": "Currency",
+      "source": "D365 Finance > General ledger > Currencies"
+    },
+    {
+      "category": "master",
+      "description": "A supplier from whom goods or services are purchased.",
+      "fields": [
+        {
+          "label": {
+            "en": "Vendor Account"
+          },
+          "name": "vendorAccount",
           "required": true,
           "type": "text"
         },
@@ -218,9 +387,9 @@
       "fields": [
         {
           "label": {
-            "en": "Customer Account Number"
+            "en": "Customer Account"
           },
-          "name": "customerAccountNumber",
+          "name": "customerAccount",
           "required": true,
           "type": "text"
         },
@@ -248,7 +417,7 @@
     },
     {
       "category": "transactional",
-      "description": "A document requesting payment for goods or services.",
+      "description": "An invoice received from a vendor for goods or services.",
       "fields": [
         {
           "label": {
@@ -260,17 +429,17 @@
         },
         {
           "label": {
-            "en": "Invoice Date"
+            "en": "Vendor"
           },
-          "name": "invoiceDate",
+          "name": "vendorId",
           "required": true,
-          "type": "date"
+          "type": "lookup"
         },
         {
           "label": {
-            "en": "Due Date"
+            "en": "Invoice Date"
           },
-          "name": "dueDate",
+          "name": "invoiceDate",
           "required": true,
           "type": "date"
         },
@@ -281,39 +450,76 @@
           "name": "totalAmount",
           "required": true,
           "type": "money"
-        },
-        {
-          "label": {
-            "en": "Status"
-          },
-          "name": "status",
-          "required": true,
-          "type": "picklist"
         }
       ],
       "label": {
-        "en": "Invoice"
+        "en": "Purchase Invoice"
       },
-      "name": "Invoice",
+      "name": "PurchaseInvoice",
       "relationships": [
         {
           "cardinality": "many-to-one",
-          "description": "The vendor for purchase invoices.",
+          "description": "The vendor who issued the invoice.",
           "name": "vendor",
           "target": "Vendor"
+        }
+      ],
+      "source": "D365 Finance > Accounts payable > Purchase invoices"
+    },
+    {
+      "category": "transactional",
+      "description": "An invoice issued to a customer for goods or services.",
+      "fields": [
+        {
+          "label": {
+            "en": "Invoice Number"
+          },
+          "name": "invoiceNumber",
+          "required": true,
+          "type": "text"
         },
         {
+          "label": {
+            "en": "Customer"
+          },
+          "name": "customerId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Invoice Date"
+          },
+          "name": "invoiceDate",
+          "required": true,
+          "type": "date"
+        },
+        {
+          "label": {
+            "en": "Total Amount"
+          },
+          "name": "totalAmount",
+          "required": true,
+          "type": "money"
+        }
+      ],
+      "label": {
+        "en": "Sales Invoice"
+      },
+      "name": "SalesInvoice",
+      "relationships": [
+        {
           "cardinality": "many-to-one",
-          "description": "The customer for sales invoices.",
+          "description": "The customer billed.",
           "name": "customer",
           "target": "Customer"
         }
       ],
-      "source": "D365 Finance > Accounts payable > Invoices"
+      "source": "D365 Finance > Accounts receivable > Sales invoices"
     },
     {
       "category": "transactional",
-      "description": "A payment made or received.",
+      "description": "A payment made to a vendor or received from a customer.",
       "fields": [
         {
           "label": {
@@ -321,7 +527,7 @@
           },
           "name": "paymentId",
           "required": true,
-          "type": "text"
+          "type": "guid"
         },
         {
           "label": {
@@ -352,19 +558,11 @@
         "en": "Payment"
       },
       "name": "Payment",
-      "relationships": [
-        {
-          "cardinality": "many-to-one",
-          "description": "The invoice being paid.",
-          "name": "invoice",
-          "target": "Invoice"
-        }
-      ],
-      "source": "D365 Finance > Accounts payable > Payments"
+      "source": "D365 Finance > Cash and bank management > Payments"
     },
     {
-      "category": "reference",
-      "description": "A financial plan for a period.",
+      "category": "master",
+      "description": "A financial plan for a specific period, used for control and reporting.",
       "fields": [
         {
           "label": {
@@ -384,11 +582,10 @@
         },
         {
           "label": {
-            "en": "Amount"
+            "en": "Status"
           },
-          "name": "amount",
-          "required": true,
-          "type": "money"
+          "name": "status",
+          "type": "picklist"
         }
       ],
       "label": {
@@ -409,6 +606,7 @@
       "entities": [
         "JournalEntry",
         "JournalLine",
+        "GeneralLedger",
         "LedgerAccount"
       ],
       "label": {
@@ -417,10 +615,10 @@
       "name": "JournalPosting",
       "steps": [
         "Create or open a journal entry",
-        "Enter lines with debit/credit amounts",
-        "Validate the entry balances",
-        "Post to the ledger",
-        "Update account balances"
+        "Enter journal lines with debit and credit amounts",
+        "Validate the entry balances (debits = credits)",
+        "Post the journal entry",
+        "Update general ledger account balances"
       ],
       "triggers": [
         "manual",
@@ -428,43 +626,97 @@
       ]
     },
     {
-      "description": "Record a payment against an invoice and settle the open amount.",
+      "description": "Record and pay a purchase invoice from a vendor.",
       "entities": [
-        "Invoice",
+        "PurchaseInvoice",
+        "Vendor",
         "Payment",
-        "LedgerAccount"
+        "GeneralLedger"
       ],
       "label": {
-        "en": "Invoice Payment"
+        "en": "Vendor Invoice Processing"
       },
-      "name": "InvoicePayment",
+      "name": "VendorInvoiceProcessing",
       "steps": [
-        "Receive payment from customer or make payment to vendor",
-        "Create a payment record",
-        "Apply payment to the invoice",
-        "Update invoice status to paid or partially paid",
-        "Post the payment to the general ledger"
+        "Receive purchase invoice from vendor",
+        "Match invoice to purchase order or receipt",
+        "Record invoice in accounts payable",
+        "Approve invoice for payment",
+        "Generate payment to vendor",
+        "Post payment and settle invoice"
       ],
       "triggers": [
-        "manual"
+        "manual",
+        "workflow"
       ]
     },
     {
-      "description": "Create and approve budgets for a fiscal period.",
+      "description": "Issue and collect payment for a sales invoice.",
+      "entities": [
+        "SalesInvoice",
+        "Customer",
+        "Payment",
+        "GeneralLedger"
+      ],
+      "label": {
+        "en": "Customer Invoice Processing"
+      },
+      "name": "CustomerInvoiceProcessing",
+      "steps": [
+        "Create sales invoice for customer",
+        "Post invoice to accounts receivable",
+        "Send invoice to customer",
+        "Receive payment from customer",
+        "Apply payment to invoice",
+        "Post payment and settle invoice"
+      ],
+      "triggers": [
+        "manual",
+        "workflow"
+      ]
+    },
+    {
+      "description": "Close a fiscal period and prepare financial statements.",
+      "entities": [
+        "FiscalPeriod",
+        "GeneralLedger",
+        "LedgerAccount",
+        "JournalEntry"
+      ],
+      "label": {
+        "en": "Period Closing"
+      },
+      "name": "PeriodClosing",
+      "steps": [
+        "Review and post all pending transactions",
+        "Perform adjustments (accruals, deferrals)",
+        "Revalue foreign currency balances",
+        "Run allocation rules",
+        "Generate financial reports (trial balance, P&L, balance sheet)",
+        "Close the period"
+      ],
+      "triggers": [
+        "manual",
+        "scheduled"
+      ]
+    },
+    {
+      "description": "Create and approve a budget for a fiscal year.",
       "entities": [
         "Budget",
-        "LedgerAccount"
+        "LedgerAccount",
+        "FiscalPeriod"
       ],
       "label": {
         "en": "Budget Planning"
       },
       "name": "BudgetPlanning",
       "steps": [
-        "Define budget plan template",
-        "Enter budget amounts by account",
-        "Review and route for approval",
+        "Define budget plan structure",
+        "Enter budget amounts by account and period",
+        "Review and adjust budget",
         "Approve budget",
-        "Transfer to budget register"
+        "Load budget into general ledger for control"
       ],
       "triggers": [
         "manual",
@@ -483,31 +735,58 @@
       "severity": "error"
     },
     {
-      "description": "Each journal line must reference a valid ledger account of the correct type.",
+      "description": "Debits and credits must be posted to appropriate account types (e.g., asset accounts normally have debit balances).",
       "enforced": "before-post",
       "label": {
-        "en": "Mandatory Account Type"
+        "en": "Account Type Validation"
       },
-      "name": "MandatoryAccountType",
+      "name": "AccountTypeValidation",
+      "severity": "warning"
+    },
+    {
+      "description": "Transactions can only be posted to open fiscal periods.",
+      "enforced": "before-post",
+      "label": {
+        "en": "Period Status Check"
+      },
+      "name": "PeriodStatusCheck",
       "severity": "error"
     },
     {
-      "description": "Invoice total amount must be greater than zero.",
-      "enforced": "before-create",
+      "description": "All lines in a journal entry must use the same currency unless multicurrency is enabled.",
+      "enforced": "before-post",
       "label": {
-        "en": "Invoice Total Positive"
+        "en": "Currency Consistency"
       },
-      "name": "InvoiceTotalPositive",
+      "name": "CurrencyConsistency",
       "severity": "error"
     },
     {
-      "description": "Payment amount cannot exceed the remaining invoice balance.",
-      "enforced": "before-create",
+      "description": "Required fields (e.g., account, date, amount) must be filled before posting.",
+      "enforced": "before-post",
       "label": {
-        "en": "Payment Not Exceeds Invoice"
+        "en": "Mandatory Fields"
       },
-      "name": "PaymentNotExceedsInvoice",
+      "name": "MandatoryFields",
       "severity": "error"
+    },
+    {
+      "description": "Expenditures must not exceed available budget when budget control is active.",
+      "enforced": "before-post",
+      "label": {
+        "en": "Budget Control"
+      },
+      "name": "BudgetControl",
+      "severity": "error"
+    },
+    {
+      "description": "Purchase invoice amounts must match purchase order or receipt within tolerance.",
+      "enforced": "before-post",
+      "label": {
+        "en": "Invoice Matching"
+      },
+      "name": "InvoiceMatching",
+      "severity": "warning"
     }
   ],
   "source": "Microsoft Dynamics 365 Finance public documentation (model-reconstructed)",

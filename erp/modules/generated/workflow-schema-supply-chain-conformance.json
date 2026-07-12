@@ -1,0 +1,365 @@
+{
+  "$kind": "test-plan",
+  "area": "supply-chain",
+  "assertions": [
+    {
+      "expect": "valid",
+      "name": "represents-purchase-order-procurement",
+      "rationale": "The workflow schema must represent the Purchase Order Procurement process with states and transitions.",
+      "sample": {
+        "entity": "PurchaseOrder",
+        "id": "purchase-order-procurement",
+        "initialState": "draft",
+        "label": {
+          "en": "Purchase Order Procurement"
+        },
+        "name": "PurchaseOrderProcurement",
+        "states": [
+          {
+            "label": {
+              "en": "Draft"
+            },
+            "name": "draft"
+          },
+          {
+            "label": {
+              "en": "Submitted"
+            },
+            "name": "submitted"
+          },
+          {
+            "label": {
+              "en": "Approved"
+            },
+            "name": "approved"
+          },
+          {
+            "label": {
+              "en": "Received"
+            },
+            "name": "received",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": {
+                  "var": "submitted"
+                }
+              }
+            ],
+            "from": [
+              "draft"
+            ],
+            "label": {
+              "en": "Submit"
+            },
+            "name": "submit",
+            "to": "submitted"
+          },
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": {
+                  "var": "approved"
+                }
+              }
+            ],
+            "from": [
+              "submitted"
+            ],
+            "guard": {
+              "==": [
+                {
+                  "var": "totalAmount"
+                },
+                {
+                  "var": "totalAmount"
+                }
+              ]
+            },
+            "label": {
+              "en": "Approve"
+            },
+            "name": "approve",
+            "to": "approved"
+          },
+          {
+            "actions": [
+              {
+                "action": "update-record",
+                "entity": "InventoryTransaction",
+                "fields": {
+                  "quantity": {
+                    "var": "quantity"
+                  }
+                }
+              }
+            ],
+            "from": [
+              "approved"
+            ],
+            "label": {
+              "en": "Receive"
+            },
+            "name": "receive",
+            "to": "received"
+          }
+        ]
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+      "source": "d365-supply-chain-reference/PurchaseOrderProcurement"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-sales-order-fulfillment",
+      "rationale": "The workflow schema must represent the Sales Order Fulfillment process.",
+      "sample": {
+        "entity": "SalesOrder",
+        "id": "sales-order-fulfillment",
+        "initialState": "draft",
+        "label": {
+          "en": "Sales Order Fulfillment"
+        },
+        "name": "SalesOrderFulfillment",
+        "states": [
+          {
+            "label": {
+              "en": "Draft"
+            },
+            "name": "draft"
+          },
+          {
+            "label": {
+              "en": "Confirmed"
+            },
+            "name": "confirmed"
+          },
+          {
+            "label": {
+              "en": "Shipped"
+            },
+            "name": "shipped",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "status",
+                "value": {
+                  "var": "confirmed"
+                }
+              }
+            ],
+            "from": [
+              "draft"
+            ],
+            "label": {
+              "en": "Confirm"
+            },
+            "name": "confirm",
+            "to": "confirmed"
+          },
+          {
+            "actions": [
+              {
+                "action": "update-record",
+                "entity": "InventoryTransaction",
+                "fields": {
+                  "quantity": {
+                    "var": "quantity"
+                  }
+                }
+              }
+            ],
+            "from": [
+              "confirmed"
+            ],
+            "label": {
+              "en": "Ship"
+            },
+            "name": "ship",
+            "to": "shipped"
+          }
+        ]
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+      "source": "d365-supply-chain-reference/SalesOrderFulfillment"
+    },
+    {
+      "expect": "valid",
+      "name": "represents-inventory-transfer",
+      "rationale": "The workflow schema must represent the Inventory Transfer process.",
+      "sample": {
+        "entity": "InventoryTransaction",
+        "id": "inventory-transfer",
+        "initialState": "pending",
+        "label": {
+          "en": "Inventory Transfer"
+        },
+        "name": "InventoryTransfer",
+        "states": [
+          {
+            "label": {
+              "en": "Pending"
+            },
+            "name": "pending"
+          },
+          {
+            "label": {
+              "en": "Shipped"
+            },
+            "name": "shipped"
+          },
+          {
+            "label": {
+              "en": "Received"
+            },
+            "name": "received",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "direction",
+                "value": {
+                  "var": "outbound"
+                }
+              }
+            ],
+            "from": [
+              "pending"
+            ],
+            "label": {
+              "en": "Ship"
+            },
+            "name": "ship",
+            "to": "shipped"
+          },
+          {
+            "actions": [
+              {
+                "action": "set-field",
+                "field": "direction",
+                "value": {
+                  "var": "inbound"
+                }
+              }
+            ],
+            "from": [
+              "shipped"
+            ],
+            "label": {
+              "en": "Receive"
+            },
+            "name": "receive",
+            "to": "received"
+          }
+        ]
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+      "source": "d365-supply-chain-reference/InventoryTransfer"
+    },
+    {
+      "expect": "invalid",
+      "name": "rejects-missing-initial-state",
+      "rationale": "Workflow schema requires 'initialState' property.",
+      "sample": {
+        "entity": "PurchaseOrder",
+        "id": "bad-workflow",
+        "label": {
+          "en": "Bad Workflow"
+        },
+        "name": "BadWorkflow",
+        "states": [
+          {
+            "label": {
+              "en": "Draft"
+            },
+            "name": "draft"
+          }
+        ],
+        "transitions": []
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+      "source": "constraint:required-properties"
+    },
+    {
+      "expect": "invalid",
+      "name": "rejects-transition-without-from",
+      "rationale": "Transition must have 'from' array (required property).",
+      "sample": {
+        "entity": "SalesOrder",
+        "id": "bad-transition",
+        "initialState": "draft",
+        "label": {
+          "en": "Bad Transition"
+        },
+        "name": "BadTransition",
+        "states": [
+          {
+            "label": {
+              "en": "Draft"
+            },
+            "name": "draft"
+          },
+          {
+            "label": {
+              "en": "Confirmed"
+            },
+            "name": "confirmed"
+          }
+        ],
+        "transitions": [
+          {
+            "label": {
+              "en": "Confirm"
+            },
+            "name": "confirm",
+            "to": "confirmed"
+          }
+        ]
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+      "source": "constraint:required-properties"
+    },
+    {
+      "expect": "invalid",
+      "name": "rejects-empty-states",
+      "rationale": "States array must have at least 1 item.",
+      "sample": {
+        "entity": "InventoryTransaction",
+        "id": "empty-states",
+        "initialState": "nonexistent",
+        "label": {
+          "en": "Empty States"
+        },
+        "name": "EmptyStates",
+        "states": [],
+        "transitions": []
+      },
+      "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json",
+      "source": "constraint:minItems"
+    }
+  ],
+  "description": "Checks that workflow.schema.json can represent the core Dynamics 365 Supply Chain Management processes, and rejects missing required fields.",
+  "id": "workflow-schema-supply-chain-conformance",
+  "label": {
+    "en": "Workflow schema — Supply Chain conformance"
+  },
+  "name": "WorkflowSchemaSupplyChainConformance",
+  "reference": "d365-supply-chain-reference",
+  "schema": "https://agentic.dev/platform-spec/schemas/workflow.schema.json"
+}

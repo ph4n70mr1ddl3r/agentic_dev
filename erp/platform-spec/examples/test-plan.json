@@ -1,0 +1,66 @@
+{
+  "$kind": "test-plan",
+  "id": "entity-schema-financials-conformance",
+  "name": "EntitySchemaFinancialsConformance",
+  "label": { "en": "Entity schema — Financials conformance" },
+  "description": "Checks that entity.schema.json can represent the core Dynamics 365 Financials concepts, and rejects the multi-company violation.",
+  "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+  "reference": "d365-financials-reference",
+  "area": "financials",
+  "assertions": [
+    {
+      "name": "represents-company",
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "expect": "valid",
+      "sample": {
+        "id": "company",
+        "name": "Company",
+        "label": { "en": "Company" },
+        "scope": "master",
+        "companyScoped": false,
+        "fields": [
+          { "name": "id", "type": "guid", "label": { "en": "ID" } },
+          { "name": "name", "type": "text", "label": { "en": "Name" } }
+        ]
+      },
+      "rationale": "The entity schema must represent a D365 Company (legal entity / master data).",
+      "source": "d365-financials-reference/Company"
+    },
+    {
+      "name": "represents-journal-entry",
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "expect": "valid",
+      "sample": {
+        "id": "journal-entry",
+        "name": "JournalEntry",
+        "label": { "en": "Journal Entry" },
+        "scope": "transactional",
+        "companyScoped": true,
+        "fields": [
+          { "name": "id", "type": "guid", "label": { "en": "ID" } },
+          { "name": "companyId", "type": "lookup", "label": { "en": "Company" }, "lookup": { "target": "Company" } },
+          { "name": "entryNo", "type": "text", "label": { "en": "Entry Number" } }
+        ]
+      },
+      "rationale": "The entity schema must represent a D365 JournalEntry (transactional, company-scoped).",
+      "source": "d365-financials-reference/JournalEntry"
+    },
+    {
+      "name": "rejects-transactional-without-company-id",
+      "schema": "https://agentic.dev/platform-spec/schemas/entity.schema.json",
+      "expect": "invalid",
+      "sample": {
+        "id": "bad",
+        "name": "Bad",
+        "label": { "en": "Bad" },
+        "scope": "transactional",
+        "companyScoped": true,
+        "fields": [
+          { "name": "id", "type": "guid", "label": { "en": "ID" } }
+        ]
+      },
+      "rationale": "A transactional, company-scoped entity must declare companyId (ADR-0004).",
+      "source": "constraint:ADR-0004"
+    }
+  ]
+}

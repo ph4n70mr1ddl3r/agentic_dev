@@ -80,6 +80,12 @@ enum Command {
         #[arg(long, default_value = "main")]
         base: String,
     },
+    /// Execute a test-plan artifact: validate each assertion's sample against its
+    /// schema and report (exits non-zero on any failure).
+    Check {
+        /// Path to a test-plan JSON file, relative to --repo.
+        plan: PathBuf,
+    },
 }
 
 #[tokio::main]
@@ -225,6 +231,7 @@ async fn main() -> Result<()> {
                 llm: &llm,
                 registry: &registry,
                 examples_dir,
+                out_dir: out_dir.clone(),
             };
 
             match task_id {
@@ -283,8 +290,7 @@ async fn main() -> Result<()> {
                 }
                 None => {
                     tracing::info!("orchestrating first phase (DAG-aware)");
-                    let report =
-                        orchestrator::run_phase(&company_plan, &ctx, &out_dir, pr_ctx).await?;
+                    let report = orchestrator::run_phase(&company_plan, &ctx, pr_ctx).await?;
                     println!(
                         "\nphase run: {} done, {} skipped, {} failed, {} prs",
                         report.done.len(),
@@ -299,9 +305,43 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
+        Command::Check { plan } => {
+            let schemas_dir = resolve(&cli.repo, std::path::Path::new("platform-spec/schemas"));
+            let registry = schema::SchemaRegistry::load_dir(&schemas_dir)?;
+            let plan_path = resolve(&cli.repo, &plan);
+            let text = std::fs::read_to_string(&plan_path)
+                .map_err(|e| anyhow::anyhow!("reading plan {}: {e}", plan_path.display()))?;
+            let plan_value: serde_json::Value = serde_json::from_str(&text)
+                .with_context(|| format!("parse {}", plan_path.display()))?;
+            let report = agents::qa::check_plan(&registry, &plan_value)?;
+            println!(
+                "{}: {}/{} assertions passed",
+                plan_path.display(),
+                report.passed,
+                report.total
+            );
+            for f in &report.failed {
+                println!(
+                    "  FAIL  {} (expected {}, was {})",
+                    f.name, f.expected, f.actual
+                );
+                if let Some(first) = f.errors.lines().next() {
+                    if !first.is_empty() {
+                        println!("        {first}");
+                    }
+                }
+            }
+            if report.all_passed() {
+                Ok(())
+            } else {
+                Err(anyhow::anyhow!(
+                    "{} assertion(s) failed",
+                    report.failed.len()
+                ))
+            }
+        }
     }
 }
-
 fn resolve(repo: &std::path::Path, p: &std::path::Path) -> PathBuf {
     if p.is_absolute() {
         p.to_path_buf()

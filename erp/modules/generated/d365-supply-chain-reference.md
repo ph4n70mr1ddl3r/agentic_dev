@@ -21,30 +21,16 @@ A distinct item or service that is traded or manufactured.
 | `unitOfMeasure` | text | yes |  |
 | `isStocked` | boolean |  |  |
 
-**Relationships:** `releasedProducts` → ReleasedProduct (one-to-many)
-
-### ReleasedProduct — Released Product _(master)_
-
-A product that has been released to a specific legal entity for use in transactions.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `productId` | lookup | yes |  |
-| `companyId` | lookup | yes |  |
-| `inventoryUnit` | text | yes |  |
-| `purchasePrice` | money |  |  |
-| `salesPrice` | money |  |  |
-
-**Relationships:** `product` → Product (many-to-one)
+**Relationships:** `inventoryTransactions` → InventoryTransaction (one-to-many); `purchaseOrderLines` → PurchaseOrderLine (one-to-many); `salesOrderLines` → SalesOrderLine (one-to-many)
 
 ### PurchaseOrder — Purchase Order _(transactional)_
 
-A document that authorizes the purchase of goods or services from a vendor.
+A document that authorizes the purchase of products from a vendor.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `orderNumber` | text | yes |  |
-| `vendorId` | lookup | yes |  |
+| `purchaseOrderNumber` | text | yes |  |
+| `vendorAccountNumber` | lookup | yes |  |
 | `orderDate` | date | yes |  |
 | `status` | picklist | yes |  |
 | `totalAmount` | money |  |  |
@@ -58,22 +44,21 @@ A single line item on a purchase order.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `lineNumber` | integer | yes |  |
-| `purchaseOrderId` | lookup | yes |  |
 | `productId` | lookup | yes |  |
 | `quantity` | decimal | yes |  |
 | `unitPrice` | money | yes |  |
-| `lineAmount` | money |  |  |
+| `receivedQuantity` | decimal |  |  |
 
-**Relationships:** `purchaseOrder` → PurchaseOrder (many-to-one)
+**Relationships:** `purchaseOrder` → PurchaseOrder (many-to-one); `product` → Product (many-to-one)
 
 ### SalesOrder — Sales Order _(transactional)_
 
-A document that records a customer's request to purchase goods or services.
+A document that records a customer's request to purchase products.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `orderNumber` | text | yes |  |
-| `customerId` | lookup | yes |  |
+| `salesOrderNumber` | text | yes |  |
+| `customerAccountNumber` | lookup | yes |  |
 | `orderDate` | date | yes |  |
 | `status` | picklist | yes |  |
 | `totalAmount` | money |  |  |
@@ -87,17 +72,16 @@ A single line item on a sales order.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `lineNumber` | integer | yes |  |
-| `salesOrderId` | lookup | yes |  |
 | `productId` | lookup | yes |  |
 | `quantity` | decimal | yes |  |
 | `unitPrice` | money | yes |  |
-| `lineAmount` | money |  |  |
+| `shippedQuantity` | decimal |  |  |
 
-**Relationships:** `salesOrder` → SalesOrder (many-to-one)
+**Relationships:** `salesOrder` → SalesOrder (many-to-one); `product` → Product (many-to-one)
 
 ### InventoryTransaction — Inventory Transaction _(transactional)_
 
-A record of a movement of inventory quantity, such as receipt, issue, or transfer.
+Records a movement of inventory (receipt, issue, transfer).
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -117,120 +101,74 @@ A physical location where inventory is stored.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `warehouseId` | text | yes |  |
-| `name` | text | yes |  |
+| `warehouseName` | text | yes |  |
 | `siteId` | lookup | yes |  |
-| `isActive` | boolean |  |  |
 
-### BillOfMaterials — Bill of Materials _(master)_
-
-A list of components and quantities required to produce a finished product.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `bomId` | text | yes |  |
-| `productId` | lookup | yes |  |
-| `name` | text | yes |  |
-| `isActive` | boolean |  |  |
-
-**Relationships:** `lines` → BillOfMaterialsLine (one-to-many)
-
-### BillOfMaterialsLine — Bill of Materials Line _(transactional)_
-
-A single component line in a bill of materials.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `lineNumber` | integer | yes |  |
-| `bomId` | lookup | yes |  |
-| `componentProductId` | lookup | yes |  |
-| `quantity` | decimal | yes |  |
-| `unitOfMeasure` | text | yes |  |
-
-**Relationships:** `billOfMaterials` → BillOfMaterials (many-to-one)
-
-### ProductionOrder — Production Order _(transactional)_
-
-An order to manufacture a specific quantity of a product.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `productionOrderNumber` | text | yes |  |
-| `productId` | lookup | yes |  |
-| `quantity` | decimal | yes |  |
-| `status` | picklist | yes |  |
-| `scheduledStartDate` | datetime |  |  |
-| `scheduledEndDate` | datetime |  |  |
-
-**Relationships:** `bom` → BillOfMaterials (many-to-one)
+**Relationships:** `inventoryTransactions` → InventoryTransaction (one-to-many)
 
 ### Vendor — Vendor _(master)_
 
-A supplier of goods or services.
+A supplier of products or services.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `vendorAccountNumber` | text | yes |  |
-| `name` | text | yes |  |
-| `vendorGroupId` | lookup | yes |  |
-| `isActive` | boolean |  |  |
+| `vendorName` | text | yes |  |
+| `currencyCode` | text | yes |  |
+
+**Relationships:** `purchaseOrders` → PurchaseOrder (one-to-many)
 
 ### Customer — Customer _(master)_
 
-A buyer of goods or services.
+A buyer of products or services.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `customerAccountNumber` | text | yes |  |
-| `name` | text | yes |  |
-| `customerGroupId` | lookup | yes |  |
-| `isActive` | boolean |  |  |
+| `customerName` | text | yes |  |
+| `currencyCode` | text | yes |  |
+
+**Relationships:** `salesOrders` → SalesOrder (one-to-many)
 
 ## Processes
 
-### ProcureToPay — Procure-to-Pay
+### PurchaseOrderProcurement — Purchase Order Procurement
 
-End-to-end process from purchase requisition to vendor payment.
+Process of creating, approving, and receiving a purchase order.
 
-1. Create purchase requisition
-2. Convert requisition to purchase order
-3. Approve purchase order
-4. Receive goods against purchase order
-5. Record vendor invoice
-6. Pay vendor
+1. Create purchase order header with vendor and dates
+2. Add purchase order lines with products and quantities
+3. Submit for approval
+4. Approve purchase order
+5. Receive products against purchase order lines
+6. Update inventory transactions with receipt
 
-### OrderToCash — Order-to-Cash
+### SalesOrderFulfillment — Sales Order Fulfillment
 
-End-to-end process from sales order to customer payment.
+Process of creating, confirming, and shipping a sales order.
 
-1. Create sales order
-2. Reserve inventory
-3. Pick and pack goods
-4. Ship goods
-5. Invoice customer
-6. Receive payment
+1. Create sales order header with customer and dates
+2. Add sales order lines with products and quantities
+3. Confirm sales order
+4. Reserve inventory
+5. Pick and pack products
+6. Ship products and update inventory transactions
 
-### ProductionExecution — Production Execution
+### InventoryTransfer — Inventory Transfer
 
-Process to manufacture a product from a production order.
+Process of moving inventory from one warehouse to another.
 
-1. Create production order
-2. Release production order
-3. Pick raw materials
-4. Start production
-5. Report as finished
-6. End production order
-
-### InventoryCounting — Inventory Counting
-
-Process to adjust inventory quantities based on physical counts.
-
-1. Create counting journal
-2. Enter counted quantities
-3. Post journal to adjust inventory
+1. Create transfer order
+2. Specify source and destination warehouses
+3. Add products and quantities
+4. Ship from source warehouse
+5. Receive at destination warehouse
+6. Update inventory transactions for both warehouses
 
 ## Rules
 
-- **NegativeInventory** _(error, before-post)_ — Inventory on-hand quantity must not become negative after a transaction.
-- **PurchaseOrderApproval** _(error, before-update)_ — Purchase orders above a certain amount must be approved before they can be confirmed.
-- **SalesOrderCreditLimit** _(warning, before-create)_ — Sales order cannot exceed the customer's credit limit without approval.
-- **BOMConsistency** _(error, before-create)_ — A BOM line cannot reference the same product as the parent BOM product.
+- **NegativeInventoryNotAllowed** _(error, before-update)_ — Inventory quantity for a product cannot go below zero unless configured otherwise.
+- **PurchaseOrderLineQuantityPositive** _(error, before-create)_ — Quantity on a purchase order line must be greater than zero.
+- **SalesOrderLineQuantityPositive** _(error, before-create)_ — Quantity on a sales order line must be greater than zero.
+- **ReceivedQuantityCannotExceedOrderedQuantity** _(error, before-update)_ — The received quantity on a purchase order line cannot exceed the ordered quantity.
+- **ShippedQuantityCannotExceedOrderedQuantity** _(error, before-update)_ — The shipped quantity on a sales order line cannot exceed the ordered quantity.

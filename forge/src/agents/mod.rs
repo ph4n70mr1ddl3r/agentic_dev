@@ -1,6 +1,7 @@
 pub mod architect;
 pub mod ceo;
 pub mod domain_modeler;
+pub mod qa;
 pub mod tech_lead;
 
 use std::path::PathBuf;
@@ -31,7 +32,7 @@ pub fn has_hat(role: &str) -> bool {
     let r = role.trim().to_ascii_lowercase();
     matches!(
         r.as_str(),
-        "solution architect" | "architect" | "tech lead" | "tech-lead"
+        "solution architect" | "architect" | "tech lead" | "tech-lead" | "qa engineer" | "qa"
     ) || r.starts_with("domain modeler")
 }
 
@@ -41,6 +42,7 @@ pub struct HatContext<'a> {
     pub llm: &'a Llm,
     pub registry: &'a SchemaRegistry,
     pub examples_dir: PathBuf,
+    pub out_dir: PathBuf,
 }
 
 /// Dispatch a task to its owning hat. Gains an arm per hat.
@@ -78,6 +80,31 @@ pub async fn run_task(task: &Task, ctx: &HatContext<'_>) -> Result<Value> {
                 schema_text,
                 &example_text,
                 area,
+            )
+            .await
+        }
+        "qa engineer" | "qa" => {
+            let tps = ctx.registry.schema_text(qa::TEST_PLAN_SCHEMA_ID)?;
+            let example_text = read(ctx.examples_dir.join("test-plan.json"))?;
+            let sut_id = qa::infer_schema_under_test(&task.description)?;
+            // Fold the supporting schemas (field / json-logic / action) into the
+            // schema-under-test text so the hat knows the rules its samples must
+            // satisfy (e.g. picklist needs options, decimal needs precision).
+            let mut sut_text = ctx.registry.schema_text(sut_id)?.to_string();
+            for sid in qa::supporting_schema_ids(sut_id) {
+                sut_text.push_str("\n\n---- SUPPORTING SCHEMA ----\n");
+                sut_text.push_str(ctx.registry.schema_text(sid)?);
+            }
+            let reference_text = read(ctx.out_dir.join(qa::infer_reference_file(&task.description)?))?;
+            qa::run_qa(
+                ctx.llm,
+                ctx.registry,
+                task,
+                tps,
+                &example_text,
+                sut_id,
+                &sut_text,
+                &reference_text,
             )
             .await
         }

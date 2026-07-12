@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentic.dev/platform-spec/schemas/test-plan.schema.json",
+  "title": "Test plan",
+  "description": "A schema-validated set of conformance assertions: each asserts that a sample instance validates (or fails to validate) against a platform-spec schema. Authored by the QA hat from a domain reference, and executed by `forge check`. The QA gate of ADR-0005. Carried $kind discriminator = \"test-plan\".",
+  "type": "object",
+  "required": ["$kind", "id", "name", "label", "schema", "assertions"],
+  "additionalProperties": false,
+  "properties": {
+    "$kind": { "const": "test-plan" },
+    "id": { "$ref": "_common.schema.json#/$defs/slug" },
+    "name": { "$ref": "_common.schema.json#/$defs/typeName" },
+    "label": { "$ref": "_common.schema.json#/$defs/localizedText" },
+    "description": { "type": "string" },
+    "schema": {
+      "type": "string",
+      "description": "$id of the primary schema under test."
+    },
+    "reference": {
+      "type": "string",
+      "description": "id of the domain reference this plan was derived from."
+    },
+    "area": { "type": "string", "enum": ["financials", "supply-chain"] },
+    "assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/assertion" }
+    }
+  },
+  "$defs": {
+    "assertion": {
+      "type": "object",
+      "required": ["name", "schema", "expect", "sample"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "_common.schema.json#/$defs/slug" },
+        "schema": {
+          "type": "string",
+          "description": "$id of the schema this assertion's sample is validated against."
+        },
+        "expect": {
+          "type": "string",
+          "enum": ["valid", "invalid"],
+          "description": "Whether the sample SHOULD validate."
+        },
+        "sample": {
+          "description": "The instance to validate (any JSON)."
+        },
+        "rationale": { "type": "string" },
+        "source": { "type": "string", "description": "Origin concept/constraint, e.g. 'reference/JournalEntry'." }
+      }
+    }
+  }
+}

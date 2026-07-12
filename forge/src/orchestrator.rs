@@ -50,7 +50,6 @@ impl RunReport {
 pub async fn run_phase(
     plan: &CompanyPlan,
     ctx: &HatContext<'_>,
-    out_dir: &Path,
     pr: Option<(&GitHub, &str)>,
 ) -> Result<RunReport> {
     let tasks = &plan.first_phase.tasks;
@@ -111,7 +110,7 @@ pub async fn run_phase(
             println!("run      {id}  [{}] ...", slugify(&task.role));
             match run_task(task, ctx).await {
                 Ok(artifact) => {
-                    let file = write_artifact(out_dir, &artifact)?;
+                    let file = write_artifact(&ctx.out_dir, &artifact)?;
                     let aid = artifact
                         .get("id")
                         .and_then(|v| v.as_str())
@@ -120,8 +119,25 @@ pub async fn run_phase(
                     println!("done     {id}  -> {} ({aid})", file.display());
                     if pr.is_none() {
                         if let Some((name, md)) = crate::agents::render_companion(&artifact) {
-                            let _ = std::fs::write(out_dir.join(&name), md);
+                            let _ = std::fs::write(ctx.out_dir.join(&name), md);
                             println!("wrote    {id}  companion {name}");
+                        }
+                    }
+                    if artifact.get("$kind").and_then(|v| v.as_str()) == Some("test-plan") {
+                        match crate::agents::qa::check_plan(ctx.registry, &artifact) {
+                            Ok(r) => {
+                                println!(
+                                    "qa       {id}  {}/{} assertions passed",
+                                    r.passed, r.total
+                                );
+                                for f in &r.failed {
+                                    println!(
+                                        "  FAIL    {} (expected {}, was {})",
+                                        f.name, f.expected, f.actual
+                                    );
+                                }
+                            }
+                            Err(e) => println!("qa       {id}  check error: {e}"),
                         }
                     }
                     if let Some((gh, base)) = pr {

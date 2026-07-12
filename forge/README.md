@@ -6,11 +6,11 @@ through GitHub. It instantiates the company's hats as AI agents and drives the
 artifact-driven, gated workflow defined in the company plan.
 
 > **Status:** MVP — the **CEO hat** plans, **`sync`** materializes the plan as
-> GitHub Issues, and **`run`** orchestrates the agent loop: three hats —
-> Architect (entities), Tech Lead (workflows), Domain Modeler (D365 reference
-> digests) — produce schema-validated artifacts, DAG-aware, retry-on-rejection,
-> each landing as a reviewable GitHub PR with **`--pr`**. Resumable state and the
-> remaining hats come next.
+> GitHub Issues, and **`run`** orchestrates the agent loop: four hats —
+> Architect, Tech Lead, Domain Modeler, QA — produce schema-validated artifacts
+> (6/8 Phase-1 tasks run unattended), DAG-aware, retry-on-rejection, each landing
+> as a reviewable GitHub PR with **`--pr`**; **`forge check`** executes the QA
+> test-plans. Resumable state and the last two hats come next.
 
 ## Run
 
@@ -78,6 +78,8 @@ cargo run --manifest-path forge/Cargo.toml -- run --repo erp
 cargo run --manifest-path forge/Cargo.toml -- run --repo erp T3
 # run the whole phase AND open a PR per artifact
 GITHUB_TOKEN="$(gh auth token)" cargo run --manifest-path forge/Cargo.toml -- run --repo erp --pr
+# execute a QA test-plan (validate its assertions)
+cargo run --manifest-path forge/Cargo.toml -- check --repo erp modules/generated/entity-schema-financials-conformance.json
 # artifacts → erp/modules/generated/<id>.json (or a PR with --pr)
 ```
 
@@ -97,6 +99,9 @@ Implemented hats:
 - **Domain Modeler** — authors a structured, schema-validated D365 reference
   digest (entities/processes/rules) for Financials or Supply Chain, the curated
   KB (ADR-0005); rendered to a markdown companion locally.
+- **QA Engineer** — authors a schema-validated test-plan (conformance assertions
+  over a reference + schema), self-checked semantically before acceptance, then
+  executed by `forge check` / the orchestrator.
 
 Other hats (Domain Modeler, QA, DevOps) land as the harness grows.
 
@@ -132,6 +137,7 @@ forge/src/
   agents/architect.rs  entity-authoring hat (schema-validated)
   agents/tech_lead.rs  workflow-authoring hat (schema-validated)
   agents/domain_modeler.rs  D365 reference-digest hat (schema-validated + markdown)
+  agents/qa.rs   QA test-plan hat + check_plan runner (forge check)
   plan.rs        CompanyPlan serde model
   render.rs      render the plan to markdown
   github.rs      GitHub REST client (issues, labels, milestones)
@@ -143,9 +149,10 @@ forge/src/
 
 - [x] CEO hat produces the company plan
 - [x] GitHub integration: turn the first-phase tasks into Issues (+ labels/milestones) (`forge sync`)
-- [x] Worker hats: Architect (entities), Tech Lead (workflows), Domain Modeler (reference digests) — all schema-validated
+- [x] Worker hats: Architect (entities), Tech Lead (workflows), Domain Modeler (reference digests), QA (test-plans) — all schema-validated
 - [x] Orchestrator: DAG-aware phase runner (`forge run`)
-- [ ] More hats: QA, DevOps — each consumes a task
+- [x] Mechanical QA gate: test-plan artifacts + `forge check` (executes assertions)
+- [ ] More hats: DevOps, docs — each consumes a task
 - [x] PR write-back (`--pr`): branch → commit artifact → open PR
 - [ ] Resumable state store (SQLite): `run` / `resume` / `status`
 - [ ] Phase gates: halt + `forge gate approve <phase>`
