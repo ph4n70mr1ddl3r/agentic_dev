@@ -1,0 +1,12 @@
+{
+  "name": "erp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Model-driven cloud ERP (Financials + Supply Chain Management).",
+  "scripts": {
+    "schema-validate": "node tools/schema-validator/validate.js"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1"
+  }
+}

@@ -1,0 +1,23 @@
+# Local development stack for the ERP (ADR-0002: Postgres hybrid storage).
+# Start with:  docker compose -f erp/infra/docker/docker-compose.yml up -d
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp-postgres
+    environment:
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp
+      POSTGRES_DB: erp
+    ports:
+      - "5432:5432"
+    volumes:
+      - erp-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp -d erp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  erp-pgdata:

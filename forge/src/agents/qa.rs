@@ -117,7 +117,7 @@ pub async fn run_qa(
         ex = example_text,
     );
 
-    const MAX_ATTEMPTS: u32 = 4;
+    const MAX_ATTEMPTS: u32 = 6;
     let mut last_err: Option<String> = None;
     for attempt in 0..MAX_ATTEMPTS {
         let prompt = match &last_err {
