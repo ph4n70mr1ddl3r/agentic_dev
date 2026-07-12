@@ -5,10 +5,9 @@ part of the ERP product — it operates *on* the [`erp/`](../erp/) repository
 through GitHub. It instantiates the company's hats as AI agents and drives the
 artifact-driven, gated workflow defined in the company plan.
 
-> **Status:** MVP — the **CEO hat** runs: it reads the company brief and produces
-> the company plan (organization, roadmap, contribution model, first-phase tasks)
-> as structured JSON, written into `erp/docs/company/`. More hats and GitHub
-> issue/PR automation come next.
+> **Status:** MVP — the **CEO hat** runs (produces the company plan), and the
+> **`sync`** command turns the first-phase tasks into GitHub Issues. More hats
+> and PR/orchestration automation come next.
 
 ## Run
 
@@ -37,6 +36,26 @@ Environment (see [`forge/.env.example`](.env.example)):
 Without `--write`, the plan is printed as JSON to stdout (useful for inspecting
 before committing). Increase verbosity with `RUST_LOG=forge=debug`.
 
+## Sync the plan to GitHub Issues
+
+After `forge ceo --write` has produced `plan.json`, turn the first-phase tasks
+into GitHub Issues — one per task, with `phase-*` / `type-*` / `role-*` labels,
+a milestone matching the phase, and the dependency list in the body:
+
+```bash
+# dry run (prints what would be created; no token needed)
+cargo run --manifest-path forge/Cargo.toml -- sync --repo erp
+
+# create them for real (needs GITHUB_TOKEN with Issues: write)
+export GITHUB_TOKEN="$(gh auth token)"   # or a fine-grained PAT
+cargo run --manifest-path forge/Cargo.toml -- sync --repo erp --write
+```
+
+The GitHub repo is auto-detected from git's `origin` remote; override with
+`--github-repo owner/name`. Sync is **idempotent**: each issue body carries a
+`<!-- forge:task:Tn -->` marker, so re-running skips tasks that already have an
+open issue.
+
 ## What the CEO produces
 
 ```
@@ -52,18 +71,21 @@ erp/docs/company/
 
 ```
 forge/src/
-  main.rs        CLI (clap): forge ceo [--write]
+  main.rs        CLI (clap): forge ceo | sync [--write]
   config.rs      env config (DeepSeek endpoint/model)
   llm.rs         OpenAI-compatible chat client (JSON mode)
   agents/ceo.rs  CEO system prompt + plan schema + run
   plan.rs        CompanyPlan serde model
   render.rs      render the plan to markdown
+  github.rs      GitHub REST client (issues, labels, milestones)
+  issues.rs      sync plan.json -> GitHub Issues
+  util.rs        shared HTTP/string helpers
 ```
 
 ## Roadmap for `forge` itself
 
 - [x] CEO hat produces the company plan
-- [ ] GitHub integration: turn the first-phase tasks into Issues (+ labels/milestones)
+- [x] GitHub integration: turn the first-phase tasks into Issues (+ labels/milestones) (`forge sync`)
 - [ ] More hats: architect, domain modeler, engineer, QA — each consumes an issue
 - [ ] Orchestrator: per-phase DAG + gated transitions
 - [ ] Resumable state store (SQLite): `run` / `resume` / `status`

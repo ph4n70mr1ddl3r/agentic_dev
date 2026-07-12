@@ -5,9 +5,12 @@ use clap::{Parser, Subcommand};
 
 mod agents;
 mod config;
+mod github;
+mod issues;
 mod llm;
 mod plan;
 mod render;
+mod util;
 
 #[derive(Parser)]
 #[command(
@@ -42,10 +45,27 @@ enum Command {
         #[arg(long)]
         no_thinking: bool,
     },
+    /// Sync the CEO plan's first-phase tasks into GitHub Issues (labels,
+    /// milestone, dependencies in the body). Idempotent: tasks that already
+    /// have an open issue are skipped. Default is a dry run.
+    Sync {
+        /// Path to the CEO-authored plan.json, relative to --repo.
+        #[arg(long, default_value = "docs/company/plan.json")]
+        plan: PathBuf,
+        /// Create the issues for real (default: dry-run, just print).
+        #[arg(long)]
+        write: bool,
+        /// Override the GitHub repo as owner/name (default: auto-detect from
+        /// git's `origin` remote).
+        #[arg(long)]
+        github_repo: Option<String>,
+    },
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    config::load_env();
+
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("forge=info"));
     tracing_subscriber::fmt().with_env_filter(filter).init();
@@ -92,6 +112,42 @@ async fn main() -> Result<()> {
                 tracing::info!(dir = %out_dir.display(), "wrote company plan");
             } else {
                 println!("{}", serde_json::to_string_pretty(&plan)?);
+            }
+            Ok(())
+        }
+        Command::Sync {
+            plan,
+            write,
+            github_repo,
+        } => {
+            let plan_path = resolve(&cli.repo, &plan);
+            let plan_text = std::fs::read_to_string(&plan_path)
+                .map_err(|e| anyhow::anyhow!("reading plan {}: {e}", plan_path.display()))?;
+            let company_plan: plan::CompanyPlan = serde_json::from_str(&plan_text)
+                .with_context(|| format!("parse plan {}", plan_path.display()))?;
+
+            let repo = match github_repo.as_deref() {
+                Some(s) => github::parse_repo(s).ok_or_else(|| {
+                    anyhow::anyhow!("invalid --github-repo {s:?} (expected owner/name)")
+                })?,
+                None => github::detect_repo().ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "could not detect GitHub repo from git origin; \
+                         pass --github-repo owner/name"
+                    )
+                })?,
+            };
+
+            tracing::info!(repo = %repo.slug(), write, "syncing first-phase issues");
+
+            if write {
+                let token = std::env::var("GITHUB_TOKEN").map_err(|_| {
+                    anyhow::anyhow!("GITHUB_TOKEN is not set (needs Issues: write)")
+                })?;
+                let gh = github::GitHub::new(token, repo)?;
+                issues::run_sync(&company_plan, &gh, 1).await?;
+            } else {
+                issues::run_sync_dry(&company_plan, &repo, 1)?;
             }
             Ok(())
         }

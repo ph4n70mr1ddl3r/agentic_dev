@@ -20,12 +20,17 @@ pub struct Config {
     pub timeout: Duration,
 }
 
+/// Load `forge/.env` then `.env` if present. Existing env vars always win
+/// (dotenvy never overwrites). Safe to call more than once.
+pub fn load_env() {
+    for path in ["forge/.env", ".env"] {
+        let _ = dotenvy::from_path(path);
+    }
+}
+
 impl Config {
     pub fn from_env() -> Result<Self> {
-        // Load forge/.env then .env if present (existing env vars always win).
-        for path in ["forge/.env", ".env"] {
-            let _ = dotenvy::from_path(path);
-        }
+        load_env();
 
         let api_key = std::env::var("DEEPSEEK_API_KEY")
             .map_err(|_| anyhow!("DEEPSEEK_API_KEY is not set (see forge/.env.example)"))?;

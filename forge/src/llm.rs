@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 use crate::config::Config;
+use crate::util::{retry_after_secs, truncate};
 
 /// Hard ceiling for the auto-grow token budget on truncation. Keeps a runaway
 /// retry from requesting an unsupported output size.
@@ -246,20 +247,4 @@ fn is_transient_err(e: &reqwest::Error) -> bool {
 /// Exponential backoff (1s, 2s, 4s, 8s, ...), capped at 30s.
 fn backoff_secs(attempt: u32) -> u64 {
     (1u64 << attempt).min(30)
-}
-
-/// Best-effort parse of the HTTP `Retry-After` header as whole seconds.
-/// (Only the delta-seconds form is honored, not the HTTP-date form.)
-fn retry_after_secs(resp: &reqwest::Response) -> Option<u64> {
-    resp.headers()
-        .get(reqwest::header::RETRY_AFTER)?
-        .to_str()
-        .ok()?
-        .trim()
-        .parse::<u64>()
-        .ok()
-}
-
-fn truncate(s: &str, n: usize) -> String {
-    s.chars().take(n).collect()
 }
