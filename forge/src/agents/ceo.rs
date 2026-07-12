@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 
+use super::extract_json;
 use crate::llm::Llm;
 use crate::plan::CompanyPlan;
 
@@ -84,17 +85,4 @@ pub async fn run_ceo(llm: &Llm, brief: &str, adrs: &str) -> Result<CompanyPlan> 
         "CEO failed to produce a valid plan after {MAX_ATTEMPTS} attempts: {}",
         last_err.unwrap_or_else(|| "unknown error".into())
     ))
-}
-
-/// Tolerate models that wrap JSON in markdown code fences despite JSON mode.
-fn extract_json(raw: &str) -> &str {
-    let trimmed = raw.trim();
-    if let Some(rest) = trimmed.strip_prefix("```") {
-        let after = rest.find('\n').map(|i| &rest[i + 1..]).unwrap_or(rest);
-        if let Some(end) = after.rfind("```") {
-            return after[..end].trim();
-        }
-        return after.trim();
-    }
-    trimmed
 }

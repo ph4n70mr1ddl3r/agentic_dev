@@ -5,9 +5,10 @@ part of the ERP product — it operates *on* the [`erp/`](../erp/) repository
 through GitHub. It instantiates the company's hats as AI agents and drives the
 artifact-driven, gated workflow defined in the company plan.
 
-> **Status:** MVP — the **CEO hat** runs (produces the company plan), and the
-> **`sync`** command turns the first-phase tasks into GitHub Issues. More hats
-> and PR/orchestration automation come next.
+> **Status:** MVP — the **CEO hat** plans, **`sync`** materializes the plan as
+> GitHub Issues, and **`run <TASK>`** drives the agent loop (Architect hat:
+> schema-validated entity artifacts). More hats, the per-phase orchestrator, and
+> resumable state come next.
 
 ## Run
 
@@ -56,6 +57,32 @@ The GitHub repo is auto-detected from git's `origin` remote; override with
 `<!-- forge:task:Tn -->` marker, so re-running skips tasks that already have an
 open issue.
 
+## Run a task — the agent loop
+
+`forge run --repo erp <TASK>` dispatches a plan task to its owning hat. The hat
+reads the task, the relevant `platform-spec` schema(s) (the contract), and a
+template example, then emits a structured artifact that is **validated against
+the schema in-process** before it is accepted. On rejection the specific errors
+are fed back and the hat retries (the ADR-0005 reviewer loop).
+
+```bash
+# the Architect hat authors an entity for task T3, validated against entity.schema.json
+cargo run --manifest-path forge/Cargo.toml -- run --repo erp T3
+# → erp/modules/generated/<entity-id>.json
+```
+
+Implemented hats:
+
+- **Solution Architect** — authors entity metadata, validated against
+  `entity.schema.json` (guid `id` PK, `companyId` on transactional entities,
+  typed fields, picklist/lookup/decimal constraints, ...). Other hats (Domain
+  Modeler, Tech Lead, QA) land as the harness grows.
+
+The reviewer **is the JSON Schema itself** — structural correctness is free, so
+a future reviewer hat only needs to judge domain semantics. Worker hats default
+to the cheap non-thinking path; set `DEEPSEEK_THINKING=enabled` for harder
+artifacts.
+
 ## What the CEO produces
 
 ```
@@ -71,10 +98,13 @@ erp/docs/company/
 
 ```
 forge/src/
-  main.rs        CLI (clap): forge ceo | sync [--write]
+  main.rs        CLI (clap): forge ceo | sync | run <TASK>
   config.rs      env config (DeepSeek endpoint/model)
   llm.rs         OpenAI-compatible chat client (JSON mode)
+  schema.rs      platform-spec schema registry + JSON-Schema validator
+  agents/mod.rs  hat dispatch + shared helpers
   agents/ceo.rs  CEO system prompt + plan schema + run
+  agents/architect.rs  entity-authoring hat (schema-validated)
   plan.rs        CompanyPlan serde model
   render.rs      render the plan to markdown
   github.rs      GitHub REST client (issues, labels, milestones)
@@ -86,7 +116,8 @@ forge/src/
 
 - [x] CEO hat produces the company plan
 - [x] GitHub integration: turn the first-phase tasks into Issues (+ labels/milestones) (`forge sync`)
-- [ ] More hats: architect, domain modeler, engineer, QA — each consumes an issue
+- [x] Architect hat: entity artifacts, validated against platform-spec schemas (first worker hat)
+- [ ] More hats: domain modeler, tech lead, QA — each consumes an issue
 - [ ] Orchestrator: per-phase DAG + gated transitions
 - [ ] Resumable state store (SQLite): `run` / `resume` / `status`
 

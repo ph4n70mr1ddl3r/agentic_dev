@@ -1,0 +1,82 @@
+{
+  "audit": true,
+  "category": "organization",
+  "companyScoped": false,
+  "description": "Master entity representing a legal entity or organization. All transactional entities reference this via companyId.",
+  "fields": [
+    {
+      "label": {
+        "en": "ID"
+      },
+      "name": "id",
+      "required": true,
+      "type": "guid"
+    },
+    {
+      "indexed": true,
+      "label": {
+        "en": "Company Name"
+      },
+      "name": "name",
+      "required": true,
+      "type": "text",
+      "unique": true
+    },
+    {
+      "indexed": true,
+      "label": {
+        "en": "Code"
+      },
+      "name": "code",
+      "required": true,
+      "type": "text",
+      "unique": true
+    },
+    {
+      "label": {
+        "en": "Base Currency"
+      },
+      "name": "currency",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "label": {
+        "en": "Country"
+      },
+      "name": "country",
+      "type": "text"
+    },
+    {
+      "label": {
+        "en": "Extras"
+      },
+      "name": "extras",
+      "promoted": false,
+      "type": "json"
+    }
+  ],
+  "id": "company",
+  "indexes": [
+    {
+      "fields": [
+        "code"
+      ],
+      "name": "by-code",
+      "unique": true
+    },
+    {
+      "fields": [
+        "name"
+      ],
+      "name": "by-name",
+      "unique": true
+    }
+  ],
+  "label": {
+    "en": "Company"
+  },
+  "name": "Company",
+  "scope": "master",
+  "timestamps": true
+}
