@@ -40,31 +40,9 @@
       "to": "Active"
     },
     {
-      "actions": [
-        {
-          "action": "set-field",
-          "field": "status",
-          "value": "Inactive"
-        },
-        {
-          "action": "send-notification",
-          "template": "company-deactivated",
-          "to": {
-            "var": "adminEmail"
-          }
-        }
-      ],
       "from": [
         "Active"
       ],
-      "guard": {
-        "==": [
-          {
-            "var": "status"
-          },
-          "Active"
-        ]
-      },
       "label": {
         "en": "Deactivate"
       },
@@ -72,28 +50,13 @@
       "to": "Inactive"
     },
     {
-      "actions": [
-        {
-          "action": "set-field",
-          "field": "status",
-          "value": "Active"
-        }
-      ],
       "from": [
         "Inactive"
       ],
-      "guard": {
-        "==": [
-          {
-            "var": "status"
-          },
-          "Inactive"
-        ]
-      },
       "label": {
-        "en": "Reinstate"
+        "en": "Reactivate"
       },
-      "name": "reinstate",
+      "name": "reactivate",
       "to": "Active"
     }
   ]

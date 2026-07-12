@@ -1,5 +1,6 @@
 pub mod architect;
 pub mod ceo;
+pub mod domain_modeler;
 pub mod tech_lead;
 
 use std::path::PathBuf;
@@ -27,10 +28,11 @@ pub fn extract_json(raw: &str) -> &str {
 /// Does a hat exist for this role? (Single source of truth shared with the
 /// orchestrator so "skipped: no hat" never disagrees with dispatch.)
 pub fn has_hat(role: &str) -> bool {
+    let r = role.trim().to_ascii_lowercase();
     matches!(
-        role.trim().to_ascii_lowercase().as_str(),
+        r.as_str(),
         "solution architect" | "architect" | "tech lead" | "tech-lead"
-    )
+    ) || r.starts_with("domain modeler")
 }
 
 /// Everything a hat needs to do its job: the LLM, the schema registry (for
@@ -65,10 +67,40 @@ pub async fn run_task(task: &Task, ctx: &HatContext<'_>) -> Result<Value> {
             let example_text = read(ctx.examples_dir.join("workflow.json"))?;
             tech_lead::run_tech_lead(ctx.llm, ctx.registry, task, wf, jl, ac, &example_text).await
         }
+        dm if dm.starts_with("domain modeler") => {
+            let area = domain_modeler::area_for_role(&task.role)?;
+            let schema_text = ctx.registry.schema_text(domain_modeler::DOMAIN_REFERENCE_SCHEMA_ID)?;
+            let example_text = read(ctx.examples_dir.join("domain-reference.json"))?;
+            domain_modeler::run_domain_modeler(
+                ctx.llm,
+                ctx.registry,
+                task,
+                schema_text,
+                &example_text,
+                area,
+            )
+            .await
+        }
         other => Err(anyhow!(
-            "no agent implemented for role {:?} (hats so far: Solution Architect, Tech Lead)",
+            "no agent implemented for role {:?} (hats so far: Solution Architect, Tech Lead, Domain Modeler)",
             other
         )),
+    }
+}
+
+/// If an artifact has a human-readable companion (e.g. domain-reference →
+/// markdown), return `(filename, content)`. Used by the runner to write a
+/// sibling file alongside the JSON in interactive (non-PR) mode.
+pub fn render_companion(value: &Value) -> Option<(String, String)> {
+    match value.get("$kind").and_then(|v| v.as_str()) {
+        Some("domain-reference") => {
+            let id = value
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("reference");
+            Some((format!("{id}.md"), domain_modeler::render_markdown(value)))
+        }
+        _ => None,
     }
 }
 

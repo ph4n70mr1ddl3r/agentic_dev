@@ -118,6 +118,12 @@ pub async fn run_phase(
                         .unwrap_or("?")
                         .to_string();
                     println!("done     {id}  -> {} ({aid})", file.display());
+                    if pr.is_none() {
+                        if let Some((name, md)) = crate::agents::render_companion(&artifact) {
+                            let _ = std::fs::write(out_dir.join(&name), md);
+                            println!("wrote    {id}  companion {name}");
+                        }
+                    }
                     if let Some((gh, base)) = pr {
                         let kind = crate::pr::kind_for_role(&task.role);
                         let path = file.to_str().unwrap_or("");

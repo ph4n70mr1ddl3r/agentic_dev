@@ -48,6 +48,14 @@
       "type": "text"
     },
     {
+      "default": true,
+      "label": {
+        "en": "Active"
+      },
+      "name": "isActive",
+      "type": "boolean"
+    },
+    {
       "label": {
         "en": "Extras"
       },
@@ -63,6 +71,13 @@
         "code"
       ],
       "name": "by-code",
+      "unique": true
+    },
+    {
+      "fields": [
+        "name"
+      ],
+      "name": "by-name",
       "unique": true
     }
   ],

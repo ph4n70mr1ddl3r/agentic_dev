@@ -24,6 +24,7 @@ See [ADR-0001](../docs/adr/0001-model-driven-architecture.md) and
 | [`rule`](schemas/rule.schema.json) | Tech Lead | An event-triggered rule (condition → actions) |
 | [`json-logic`](schemas/json-logic.schema.json) | Tech Lead | The deterministic JSON-logic subset used for conditions/formulas (ADR-0003) |
 | [`action`](schemas/action.schema.json) | Tech Lead | The curated action vocabulary (ADR-0003) |
+| [`domain-reference`](schemas/domain-reference.schema.json) | Domain Modeler | A structured D365 area digest (entities/processes/rules) — the curated KB (ADR-0005); `$kind`-tagged, rendered to markdown |
 
 Each schema declares a stable `$id` under `https://agentic.dev/platform-spec/schemas/`
 and cross-references siblings by that `$id`. The loader (see

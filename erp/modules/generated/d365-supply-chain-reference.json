@@ -1,0 +1,893 @@
+{
+  "$kind": "domain-reference",
+  "area": "supply-chain",
+  "description": "Model-reconstructed digest of the core concepts of Dynamics 365 Supply Chain Management.",
+  "entities": [
+    {
+      "category": "master",
+      "description": "A distinct item or service that is traded or manufactured.",
+      "fields": [
+        {
+          "label": {
+            "en": "Product Number"
+          },
+          "name": "productNumber",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Product Name"
+          },
+          "name": "productName",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Item Group"
+          },
+          "name": "itemGroupId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Unit of Measure"
+          },
+          "name": "unitOfMeasure",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Stocked Product"
+          },
+          "name": "isStocked",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "label": {
+        "en": "Product"
+      },
+      "name": "Product",
+      "relationships": [
+        {
+          "cardinality": "one-to-many",
+          "description": "Product variants released to legal entities.",
+          "name": "releasedProducts",
+          "target": "ReleasedProduct"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Product information management > Products"
+    },
+    {
+      "category": "master",
+      "description": "A product that has been released to a specific legal entity for use in transactions.",
+      "fields": [
+        {
+          "label": {
+            "en": "Product"
+          },
+          "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Legal Entity"
+          },
+          "name": "companyId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Inventory Unit"
+          },
+          "name": "inventoryUnit",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Purchase Price"
+          },
+          "name": "purchasePrice",
+          "required": false,
+          "type": "money"
+        },
+        {
+          "label": {
+            "en": "Sales Price"
+          },
+          "name": "salesPrice",
+          "required": false,
+          "type": "money"
+        }
+      ],
+      "label": {
+        "en": "Released Product"
+      },
+      "name": "ReleasedProduct",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The base product definition.",
+          "name": "product",
+          "target": "Product"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Product information management > Released products"
+    },
+    {
+      "category": "transactional",
+      "description": "A document that authorizes the purchase of goods or services from a vendor.",
+      "fields": [
+        {
+          "label": {
+            "en": "Order Number"
+          },
+          "name": "orderNumber",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Vendor"
+          },
+          "name": "vendorId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Order Date"
+          },
+          "name": "orderDate",
+          "required": true,
+          "type": "date"
+        },
+        {
+          "label": {
+            "en": "Status"
+          },
+          "name": "status",
+          "required": true,
+          "type": "picklist"
+        },
+        {
+          "label": {
+            "en": "Total Amount"
+          },
+          "name": "totalAmount",
+          "required": false,
+          "type": "money"
+        }
+      ],
+      "label": {
+        "en": "Purchase Order"
+      },
+      "name": "PurchaseOrder",
+      "relationships": [
+        {
+          "cardinality": "one-to-many",
+          "description": "The individual line items.",
+          "name": "lines",
+          "target": "PurchaseOrderLine"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Procurement and sourcing > Purchase orders"
+    },
+    {
+      "category": "transactional",
+      "description": "A single line item on a purchase order.",
+      "fields": [
+        {
+          "label": {
+            "en": "Line Number"
+          },
+          "name": "lineNumber",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "label": {
+            "en": "Purchase Order"
+          },
+          "name": "purchaseOrderId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Product"
+          },
+          "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Quantity"
+          },
+          "name": "quantity",
+          "required": true,
+          "type": "decimal"
+        },
+        {
+          "label": {
+            "en": "Unit Price"
+          },
+          "name": "unitPrice",
+          "required": true,
+          "type": "money"
+        },
+        {
+          "label": {
+            "en": "Line Amount"
+          },
+          "name": "lineAmount",
+          "required": false,
+          "type": "money"
+        }
+      ],
+      "label": {
+        "en": "Purchase Order Line"
+      },
+      "name": "PurchaseOrderLine",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The parent purchase order.",
+          "name": "purchaseOrder",
+          "target": "PurchaseOrder"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Procurement and sourcing > Purchase orders > Lines"
+    },
+    {
+      "category": "transactional",
+      "description": "A document that records a customer's request to purchase goods or services.",
+      "fields": [
+        {
+          "label": {
+            "en": "Order Number"
+          },
+          "name": "orderNumber",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Customer"
+          },
+          "name": "customerId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Order Date"
+          },
+          "name": "orderDate",
+          "required": true,
+          "type": "date"
+        },
+        {
+          "label": {
+            "en": "Status"
+          },
+          "name": "status",
+          "required": true,
+          "type": "picklist"
+        },
+        {
+          "label": {
+            "en": "Total Amount"
+          },
+          "name": "totalAmount",
+          "required": false,
+          "type": "money"
+        }
+      ],
+      "label": {
+        "en": "Sales Order"
+      },
+      "name": "SalesOrder",
+      "relationships": [
+        {
+          "cardinality": "one-to-many",
+          "description": "The individual line items.",
+          "name": "lines",
+          "target": "SalesOrderLine"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Sales and marketing > Sales orders"
+    },
+    {
+      "category": "transactional",
+      "description": "A single line item on a sales order.",
+      "fields": [
+        {
+          "label": {
+            "en": "Line Number"
+          },
+          "name": "lineNumber",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "label": {
+            "en": "Sales Order"
+          },
+          "name": "salesOrderId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Product"
+          },
+          "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Quantity"
+          },
+          "name": "quantity",
+          "required": true,
+          "type": "decimal"
+        },
+        {
+          "label": {
+            "en": "Unit Price"
+          },
+          "name": "unitPrice",
+          "required": true,
+          "type": "money"
+        },
+        {
+          "label": {
+            "en": "Line Amount"
+          },
+          "name": "lineAmount",
+          "required": false,
+          "type": "money"
+        }
+      ],
+      "label": {
+        "en": "Sales Order Line"
+      },
+      "name": "SalesOrderLine",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The parent sales order.",
+          "name": "salesOrder",
+          "target": "SalesOrder"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Sales and marketing > Sales orders > Lines"
+    },
+    {
+      "category": "transactional",
+      "description": "A record of a movement of inventory quantity, such as receipt, issue, or transfer.",
+      "fields": [
+        {
+          "label": {
+            "en": "Transaction ID"
+          },
+          "name": "transactionId",
+          "required": true,
+          "type": "guid"
+        },
+        {
+          "label": {
+            "en": "Product"
+          },
+          "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Quantity"
+          },
+          "name": "quantity",
+          "required": true,
+          "type": "decimal"
+        },
+        {
+          "label": {
+            "en": "Direction"
+          },
+          "name": "direction",
+          "required": true,
+          "type": "picklist"
+        },
+        {
+          "label": {
+            "en": "Transaction Date"
+          },
+          "name": "transactionDate",
+          "required": true,
+          "type": "datetime"
+        },
+        {
+          "label": {
+            "en": "Reference Type"
+          },
+          "name": "referenceType",
+          "required": false,
+          "type": "text"
+        }
+      ],
+      "label": {
+        "en": "Inventory Transaction"
+      },
+      "name": "InventoryTransaction",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The product involved.",
+          "name": "product",
+          "target": "Product"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Inventory management > Inventory transactions"
+    },
+    {
+      "category": "master",
+      "description": "A physical location where inventory is stored.",
+      "fields": [
+        {
+          "label": {
+            "en": "Warehouse ID"
+          },
+          "name": "warehouseId",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Name"
+          },
+          "name": "name",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Site"
+          },
+          "name": "siteId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Active"
+          },
+          "name": "isActive",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "label": {
+        "en": "Warehouse"
+      },
+      "name": "Warehouse",
+      "source": "D365 Supply Chain Management > Inventory management > Setup > Warehouse"
+    },
+    {
+      "category": "master",
+      "description": "A list of components and quantities required to produce a finished product.",
+      "fields": [
+        {
+          "label": {
+            "en": "BOM ID"
+          },
+          "name": "bomId",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Product"
+          },
+          "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Name"
+          },
+          "name": "name",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Active"
+          },
+          "name": "isActive",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "label": {
+        "en": "Bill of Materials"
+      },
+      "name": "BillOfMaterials",
+      "relationships": [
+        {
+          "cardinality": "one-to-many",
+          "description": "The component lines.",
+          "name": "lines",
+          "target": "BillOfMaterialsLine"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Product information management > Bills of materials"
+    },
+    {
+      "category": "transactional",
+      "description": "A single component line in a bill of materials.",
+      "fields": [
+        {
+          "label": {
+            "en": "Line Number"
+          },
+          "name": "lineNumber",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "label": {
+            "en": "BOM"
+          },
+          "name": "bomId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Component Product"
+          },
+          "name": "componentProductId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Quantity"
+          },
+          "name": "quantity",
+          "required": true,
+          "type": "decimal"
+        },
+        {
+          "label": {
+            "en": "Unit of Measure"
+          },
+          "name": "unitOfMeasure",
+          "required": true,
+          "type": "text"
+        }
+      ],
+      "label": {
+        "en": "Bill of Materials Line"
+      },
+      "name": "BillOfMaterialsLine",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The parent BOM.",
+          "name": "billOfMaterials",
+          "target": "BillOfMaterials"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Product information management > Bills of materials > Lines"
+    },
+    {
+      "category": "transactional",
+      "description": "An order to manufacture a specific quantity of a product.",
+      "fields": [
+        {
+          "label": {
+            "en": "Production Order Number"
+          },
+          "name": "productionOrderNumber",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Product"
+          },
+          "name": "productId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Quantity"
+          },
+          "name": "quantity",
+          "required": true,
+          "type": "decimal"
+        },
+        {
+          "label": {
+            "en": "Status"
+          },
+          "name": "status",
+          "required": true,
+          "type": "picklist"
+        },
+        {
+          "label": {
+            "en": "Scheduled Start"
+          },
+          "name": "scheduledStartDate",
+          "required": false,
+          "type": "datetime"
+        },
+        {
+          "label": {
+            "en": "Scheduled End"
+          },
+          "name": "scheduledEndDate",
+          "required": false,
+          "type": "datetime"
+        }
+      ],
+      "label": {
+        "en": "Production Order"
+      },
+      "name": "ProductionOrder",
+      "relationships": [
+        {
+          "cardinality": "many-to-one",
+          "description": "The BOM used for production.",
+          "name": "bom",
+          "target": "BillOfMaterials"
+        }
+      ],
+      "source": "D365 Supply Chain Management > Production control > Production orders"
+    },
+    {
+      "category": "master",
+      "description": "A supplier of goods or services.",
+      "fields": [
+        {
+          "label": {
+            "en": "Vendor Account Number"
+          },
+          "name": "vendorAccountNumber",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Name"
+          },
+          "name": "name",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Vendor Group"
+          },
+          "name": "vendorGroupId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Active"
+          },
+          "name": "isActive",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "label": {
+        "en": "Vendor"
+      },
+      "name": "Vendor",
+      "source": "D365 Supply Chain Management > Procurement and sourcing > Vendors"
+    },
+    {
+      "category": "master",
+      "description": "A buyer of goods or services.",
+      "fields": [
+        {
+          "label": {
+            "en": "Customer Account Number"
+          },
+          "name": "customerAccountNumber",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Name"
+          },
+          "name": "name",
+          "required": true,
+          "type": "text"
+        },
+        {
+          "label": {
+            "en": "Customer Group"
+          },
+          "name": "customerGroupId",
+          "required": true,
+          "type": "lookup"
+        },
+        {
+          "label": {
+            "en": "Active"
+          },
+          "name": "isActive",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "label": {
+        "en": "Customer"
+      },
+      "name": "Customer",
+      "source": "D365 Supply Chain Management > Sales and marketing > Customers"
+    }
+  ],
+  "id": "d365-supply-chain-reference",
+  "label": {
+    "en": "Dynamics 365 Supply Chain Management Reference"
+  },
+  "name": "D365SupplyChainReference",
+  "processes": [
+    {
+      "description": "End-to-end process from purchase requisition to vendor payment.",
+      "entities": [
+        "PurchaseOrder",
+        "PurchaseOrderLine",
+        "Vendor",
+        "InventoryTransaction"
+      ],
+      "label": {
+        "en": "Procure-to-Pay"
+      },
+      "name": "ProcureToPay",
+      "steps": [
+        "Create purchase requisition",
+        "Convert requisition to purchase order",
+        "Approve purchase order",
+        "Receive goods against purchase order",
+        "Record vendor invoice",
+        "Pay vendor"
+      ],
+      "triggers": [
+        "manual",
+        "workflow"
+      ]
+    },
+    {
+      "description": "End-to-end process from sales order to customer payment.",
+      "entities": [
+        "SalesOrder",
+        "SalesOrderLine",
+        "Customer",
+        "InventoryTransaction"
+      ],
+      "label": {
+        "en": "Order-to-Cash"
+      },
+      "name": "OrderToCash",
+      "steps": [
+        "Create sales order",
+        "Reserve inventory",
+        "Pick and pack goods",
+        "Ship goods",
+        "Invoice customer",
+        "Receive payment"
+      ],
+      "triggers": [
+        "manual",
+        "workflow"
+      ]
+    },
+    {
+      "description": "Process to manufacture a product from a production order.",
+      "entities": [
+        "ProductionOrder",
+        "BillOfMaterials",
+        "BillOfMaterialsLine",
+        "InventoryTransaction"
+      ],
+      "label": {
+        "en": "Production Execution"
+      },
+      "name": "ProductionExecution",
+      "steps": [
+        "Create production order",
+        "Release production order",
+        "Pick raw materials",
+        "Start production",
+        "Report as finished",
+        "End production order"
+      ],
+      "triggers": [
+        "manual",
+        "event"
+      ]
+    },
+    {
+      "description": "Process to adjust inventory quantities based on physical counts.",
+      "entities": [
+        "InventoryTransaction",
+        "Warehouse",
+        "Product"
+      ],
+      "label": {
+        "en": "Inventory Counting"
+      },
+      "name": "InventoryCounting",
+      "steps": [
+        "Create counting journal",
+        "Enter counted quantities",
+        "Post journal to adjust inventory"
+      ],
+      "triggers": [
+        "manual",
+        "scheduled"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "description": "Inventory on-hand quantity must not become negative after a transaction.",
+      "enforced": "before-post",
+      "label": {
+        "en": "Negative Inventory Not Allowed"
+      },
+      "name": "NegativeInventory",
+      "severity": "error"
+    },
+    {
+      "description": "Purchase orders above a certain amount must be approved before they can be confirmed.",
+      "enforced": "before-update",
+      "label": {
+        "en": "Purchase Order Approval Required"
+      },
+      "name": "PurchaseOrderApproval",
+      "severity": "error"
+    },
+    {
+      "description": "Sales order cannot exceed the customer's credit limit without approval.",
+      "enforced": "before-create",
+      "label": {
+        "en": "Customer Credit Limit Check"
+      },
+      "name": "SalesOrderCreditLimit",
+      "severity": "warning"
+    },
+    {
+      "description": "A BOM line cannot reference the same product as the parent BOM product.",
+      "enforced": "before-create",
+      "label": {
+        "en": "BOM Line Product Consistency"
+      },
+      "name": "BOMConsistency",
+      "severity": "error"
+    }
+  ],
+  "source": "Microsoft Dynamics 365 Supply Chain Management public documentation (model-reconstructed)",
+  "version": "1.0"
+}

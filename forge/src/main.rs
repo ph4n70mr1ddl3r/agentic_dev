@@ -257,6 +257,12 @@ async fn main() -> Result<()> {
                         artifact = %file.display(),
                         "hat produced a schema-validated artifact"
                     );
+                    if gh.is_none() {
+                        if let Some((name, md)) = agents::render_companion(&artifact) {
+                            let _ = std::fs::write(out_dir.join(&name), md);
+                            println!("wrote companion {}", out_dir.join(name).display());
+                        }
+                    }
                     if let Some((g, b)) = pr_ctx {
                         let kind = pr::kind_for_role(&task.role);
                         let inp = pr::PrInput {

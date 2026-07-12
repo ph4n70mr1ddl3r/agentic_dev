@@ -1,0 +1,63 @@
+{
+  "$kind": "domain-reference",
+  "id": "d365-financials-reference",
+  "name": "D365FinancialsReference",
+  "label": { "en": "Dynamics 365 Financials Reference" },
+  "area": "financials",
+  "description": "Model-reconstructed digest of the core concepts of Dynamics 365 Finance.",
+  "source": "Microsoft Dynamics 365 Finance public documentation (model-reconstructed)",
+  "version": "1.0",
+  "entities": [
+    {
+      "name": "Company",
+      "label": { "en": "Legal Entity" },
+      "description": "A legal entity that owns financial transactions and a chart of accounts.",
+      "category": "master",
+      "fields": [
+        { "name": "name", "type": "text", "label": { "en": "Name" }, "required": true },
+        { "name": "baseCurrency", "type": "text", "label": { "en": "Base Currency" }, "required": true }
+      ],
+      "source": "D365 Finance > Organization administration > Legal entities"
+    },
+    {
+      "name": "JournalEntry",
+      "label": { "en": "Journal Entry" },
+      "description": "The header of a double-entry accounting journal.",
+      "category": "transactional",
+      "fields": [
+        { "name": "entryNo", "type": "text", "label": { "en": "Entry Number" }, "required": true },
+        { "name": "entryDate", "type": "date", "label": { "en": "Entry Date" }, "required": true },
+        { "name": "companyId", "type": "lookup", "label": { "en": "Company" }, "required": true },
+        { "name": "status", "type": "picklist", "label": { "en": "Status" }, "required": true }
+      ],
+      "relationships": [
+        {
+          "name": "lines",
+          "target": "JournalLine",
+          "cardinality": "one-to-many",
+          "description": "The individual debit/credit lines."
+        }
+      ],
+      "source": "D365 Finance > General ledger > Journal entries"
+    }
+  ],
+  "processes": [
+    {
+      "name": "JournalPosting",
+      "label": { "en": "Journal Posting" },
+      "description": "Validate and post a journal entry to the general ledger.",
+      "steps": ["Validate the entry balances", "Post to the ledger", "Update account balances"],
+      "entities": ["JournalEntry", "JournalLine", "LedgerAccount"],
+      "triggers": ["manual", "workflow"]
+    }
+  ],
+  "rules": [
+    {
+      "name": "BalancedEntry",
+      "label": { "en": "Balanced Entry" },
+      "description": "A journal entry's debits must equal its credits before posting.",
+      "enforced": "before-post",
+      "severity": "error"
+    }
+  ]
+}
