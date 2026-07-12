@@ -10,7 +10,11 @@ mod plan;
 mod render;
 
 #[derive(Parser)]
-#[command(name = "forge", version, about = "Runs the virtual software company of AI agents")]
+#[command(
+    name = "forge",
+    version,
+    about = "Runs the virtual software company of AI agents"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,

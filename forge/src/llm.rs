@@ -109,7 +109,9 @@ impl Llm {
                 }
                 let next = budget.saturating_mul(2).min(MAX_TOKEN_CAP);
                 tracing::warn!(
-                    attempt, prev = budget, next,
+                    attempt,
+                    prev = budget,
+                    next,
                     "LLM output truncated; retrying with a larger token budget"
                 );
                 budget = next;
@@ -131,12 +133,7 @@ impl Llm {
         bail!("LLM returned empty content repeatedly; tweak the prompt or retry later")
     }
 
-    async fn chat_once(
-        &self,
-        system: &str,
-        user: &str,
-        max_tokens: u32,
-    ) -> Result<ChatOutcome> {
+    async fn chat_once(&self, system: &str, user: &str, max_tokens: u32) -> Result<ChatOutcome> {
         let req = ChatRequest {
             model: &self.config.model,
             messages: vec![
@@ -149,15 +146,21 @@ impl Llm {
                     content: user.to_string(),
                 },
             ],
-            response_format: ResponseFormat {
-                typ: "json_object",
-            },
+            response_format: ResponseFormat { typ: "json_object" },
             max_tokens,
             thinking: Thinking {
-                typ: if self.config.thinking { "enabled" } else { "disabled" },
+                typ: if self.config.thinking {
+                    "enabled"
+                } else {
+                    "disabled"
+                },
             },
-            // temperature/top_p are ignored in thinking mode, so omit then.
-            temperature: if self.config.thinking { None } else { Some(0.2) },
+            // temperature/top_p are ignored in thinking mode, so omit them.
+            temperature: if self.config.thinking {
+                None
+            } else {
+                Some(0.2)
+            },
             reasoning_effort: self.config.reasoning_effort.clone(),
         };
 
@@ -205,7 +208,10 @@ impl Llm {
                 continue;
             }
             let body = resp.text().await.unwrap_or_default();
-            bail!("LLM request to {url} failed ({status}): {}", truncate(&body, 1000));
+            bail!(
+                "LLM request to {url} failed ({status}): {}",
+                truncate(&body, 1000)
+            );
         }
         bail!("LLM request to {url} failed: retries exhausted")
     }

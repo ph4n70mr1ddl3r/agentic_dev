@@ -27,7 +27,10 @@ fn organization_md(p: &CompanyPlan) -> String {
     let mut s = String::new();
     s.push_str("# Organization\n\n");
     s.push_str(BYLINE);
-    s.push_str(&format!("\n**Mission:** {}\n\n## Hats\n\n", p.mission.trim()));
+    s.push_str(&format!(
+        "\n**Mission:** {}\n\n## Hats\n\n",
+        p.mission.trim()
+    ));
     s.push_str("| Hat | Role | Responsibilities |\n|---|---|---|\n");
     for h in &p.organization.hats {
         s.push_str(&format!(
@@ -88,7 +91,10 @@ fn tasks_md(p: &CompanyPlan) -> String {
     s.push_str("\n## Details\n\n");
     for t in &p.first_phase.tasks {
         s.push_str(&format!("### {} — {}\n", t.id, t.title));
-        s.push_str(&format!("- **Role:** {}\n- **Type:** {}\n", t.role, t.task_type));
+        s.push_str(&format!(
+            "- **Role:** {}\n- **Type:** {}\n",
+            t.role, t.task_type
+        ));
         if !t.depends_on.is_empty() {
             s.push_str(&format!("- **Depends on:** {}\n", t.depends_on.join(", ")));
         }
@@ -125,7 +131,10 @@ mod tests {
                 exit_criteria: vec!["c".into()],
             }],
             contribution_model: "cm".into(),
-            first_phase: FirstPhase { name: "P".into(), tasks: vec![] },
+            first_phase: FirstPhase {
+                name: "P".into(),
+                tasks: vec![],
+            },
         }
     }
 
@@ -133,12 +142,18 @@ mod tests {
     fn organization_table_escapes_pipe() {
         let md = organization_md(&plan_with_responsibility("do | thing"));
         assert!(md.contains("do \\| thing"), "pipe should be escaped: {md}");
-        assert!(!md.contains("do | thing"), "raw pipe leaked into table: {md}");
+        assert!(
+            !md.contains("do | thing"),
+            "raw pipe leaked into table: {md}"
+        );
     }
 
     #[test]
     fn organization_table_escapes_newline() {
         let md = organization_md(&plan_with_responsibility("line1\nline2"));
-        assert!(md.contains("line1<br>line2"), "newline should be escaped: {md}");
+        assert!(
+            md.contains("line1<br>line2"),
+            "newline should be escaped: {md}"
+        );
     }
 }

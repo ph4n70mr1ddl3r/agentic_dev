@@ -42,12 +42,48 @@ pub async fn run_ceo(llm: &Llm, brief: &str, adrs: &str) -> Result<CompanyPlan> 
         user.push_str("\n\n");
     }
     user.push_str("Now produce the company plan as a JSON object.");
-    let raw = llm.chat_json(CEO_SYSTEM, &user).await?;
-    let json = extract_json(&raw);
-    serde_json::from_str::<CompanyPlan>(json).map_err(|e| {
-        let preview: String = raw.chars().take(800).collect();
-        anyhow!("CEO returned invalid JSON ({e}). Preview:\n{preview}")
-    })
+
+    // A weak model in JSON mode usually succeeds, but can occasionally emit
+    // invalid JSON or a plan that fails our integrity checks. Per ADR-0005
+    // (reviewer loops), retry a few times and feed the specific rejection back
+    // so the model can correct it, rather than failing the whole run.
+    const MAX_ATTEMPTS: u32 = 3;
+    let mut last_err: Option<String> = None;
+    for attempt in 0..MAX_ATTEMPTS {
+        let prompt = match &last_err {
+            None => user.clone(),
+            Some(err) => format!(
+                "{user}\n\nYour previous attempt was rejected by the reviewer:\n{err}\n\n\
+                 Return ONLY a corrected JSON object with EXACTLY the required shape.",
+            ),
+        };
+        let raw = llm.chat_json(CEO_SYSTEM, &prompt).await?;
+        let json = extract_json(&raw);
+        match serde_json::from_str::<CompanyPlan>(json) {
+            Ok(plan) => match plan.validate() {
+                Ok(()) => return Ok(plan),
+                Err(e) => {
+                    let msg = e.to_string();
+                    tracing::warn!(
+                        attempt,
+                        error = %msg,
+                        "CEO plan failed validation; retrying"
+                    );
+                    last_err = Some(msg);
+                }
+            },
+            Err(e) => {
+                let preview: String = raw.chars().take(800).collect();
+                let msg = format!("invalid JSON ({e}). Preview:\n{preview}");
+                tracing::warn!(attempt, "CEO returned invalid JSON; retrying");
+                last_err = Some(msg);
+            }
+        }
+    }
+    Err(anyhow!(
+        "CEO failed to produce a valid plan after {MAX_ATTEMPTS} attempts: {}",
+        last_err.unwrap_or_else(|| "unknown error".into())
+    ))
 }
 
 /// Tolerate models that wrap JSON in markdown code fences despite JSON mode.

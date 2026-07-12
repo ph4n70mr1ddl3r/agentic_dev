@@ -29,10 +29,9 @@ impl Config {
 
         let api_key = std::env::var("DEEPSEEK_API_KEY")
             .map_err(|_| anyhow!("DEEPSEEK_API_KEY is not set (see forge/.env.example)"))?;
-        let base_url =
-            std::env::var("DEEPSEEK_BASE_URL").unwrap_or_else(|_| "https://api.deepseek.com".into());
-        let model =
-            std::env::var("DEEPSEEK_MODEL").unwrap_or_else(|_| "deepseek-v4-flash".into());
+        let base_url = std::env::var("DEEPSEEK_BASE_URL")
+            .unwrap_or_else(|_| "https://api.deepseek.com".into());
+        let model = std::env::var("DEEPSEEK_MODEL").unwrap_or_else(|_| "deepseek-v4-flash".into());
 
         let thinking = std::env::var("DEEPSEEK_THINKING")
             .map(|v| matches!(v.as_str(), "1" | "true" | "enabled"))

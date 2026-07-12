@@ -109,6 +109,29 @@ impl CompanyPlan {
                 }
             }
         }
+        // Each task's owning role must be one of the declared hats
+        // (case-insensitive). Catches a weak model inventing roles.
+        for t in &self.first_phase.tasks {
+            let role = t.role.trim().to_ascii_lowercase();
+            if !hat_names.contains(&role) {
+                errs.push(format!(
+                    "task {} assigns role {:?} that is not a declared hat",
+                    t.id, t.role
+                ));
+            }
+        }
+        // The "first phase" breakdown must correspond to the first roadmap
+        // phase, otherwise the task list is ambiguous.
+        if let Some(first) = self.roadmap.first() {
+            let a = self.first_phase.name.trim().to_ascii_lowercase();
+            let b = first.name.trim().to_ascii_lowercase();
+            if !a.is_empty() && !b.is_empty() && a != b {
+                errs.push(format!(
+                    "first_phase name {:?} does not match the first roadmap phase {:?}",
+                    self.first_phase.name, first.name
+                ));
+            }
+        }
 
         if errs.is_empty() {
             Ok(())
@@ -134,7 +157,7 @@ mod tests {
         Task {
             id: id.into(),
             title: "t".into(),
-            role: "r".into(),
+            role: "CEO".into(),
             task_type: "DEV".into(),
             description: "d".into(),
             depends_on: deps.iter().map(|s| s.to_string()).collect(),
@@ -144,7 +167,9 @@ mod tests {
     fn valid_plan() -> CompanyPlan {
         CompanyPlan {
             mission: "m".into(),
-            organization: Organization { hats: vec![hat("CEO")] },
+            organization: Organization {
+                hats: vec![hat("CEO")],
+            },
             roadmap: vec![Phase {
                 name: "P0".into(),
                 goal: "g".into(),
@@ -188,6 +213,20 @@ mod tests {
     fn duplicate_hat_name_is_case_insensitive() {
         let mut p = valid_plan();
         p.organization.hats.push(hat("ceo"));
+        assert!(p.validate().is_err());
+    }
+
+    #[test]
+    fn task_role_not_a_hat_fails() {
+        let mut p = valid_plan();
+        p.first_phase.tasks[0].role = "Nobody".into();
+        assert!(p.validate().is_err());
+    }
+
+    #[test]
+    fn first_phase_name_mismatch_fails() {
+        let mut p = valid_plan();
+        p.first_phase.name = "Phase Uno".into();
         assert!(p.validate().is_err());
     }
 }
