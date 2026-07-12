@@ -8,8 +8,8 @@ artifact-driven, gated workflow defined in the company plan.
 > **Status:** MVP — the **CEO hat** plans, **`sync`** materializes the plan as
 > GitHub Issues, and **`run`** orchestrates the agent loop: the Architect +
 > Tech Lead hats produce schema-validated artifacts (entities, workflows),
-> DAG-aware, retry-on-rejection. Resumable state, PR write-back, and more hats
-> come next.
+> DAG-aware, retry-on-rejection, each landing as a reviewable GitHub PR with
+> **`--pr`**. Resumable state and more hats come next.
 
 ## Run
 
@@ -75,8 +75,16 @@ errors are fed back and the hat retries (the ADR-0005 reviewer loop).
 cargo run --manifest-path forge/Cargo.toml -- run --repo erp
 # run a single task
 cargo run --manifest-path forge/Cargo.toml -- run --repo erp T3
-# artifacts → erp/modules/generated/<id>.json
+# run the whole phase AND open a PR per artifact
+GITHUB_TOKEN="$(gh auth token)" cargo run --manifest-path forge/Cargo.toml -- run --repo erp --pr
+# artifacts → erp/modules/generated/<id>.json (or a PR with --pr)
 ```
+
+With **`--pr`**, each produced artifact is published as a reviewable GitHub PR
+(one branch per artifact — `forge/<task>-<id>`, a scoped commit, pushed, then a
+PR opened with the task context + the schema it was validated against). Needs a
+clean working tree and `GITHUB_TOKEN` (e.g. `$(gh auth token)`); the base branch
+defaults to `main` (`--base`).
 
 Implemented hats:
 
@@ -113,6 +121,8 @@ forge/src/
   llm.rs         OpenAI-compatible chat client (JSON mode)
   schema.rs      platform-spec schema registry + JSON-Schema validator
   orchestrator.rs  DAG-aware phase runner (forge run)
+  git.rs         local git CLI wrappers (branch/commit/push for --pr)
+  pr.rs          publish an artifact as a GitHub PR (--pr)
   agents/mod.rs  hat dispatch + has_hat + shared helpers
   agents/ceo.rs  CEO system prompt + plan schema + run
   agents/architect.rs  entity-authoring hat (schema-validated)
@@ -131,7 +141,7 @@ forge/src/
 - [x] Worker hats: Architect (entities) + Tech Lead (workflows), schema-validated
 - [x] Orchestrator: DAG-aware phase runner (`forge run`)
 - [ ] More hats: domain modeler, QA, DevOps — each consumes a task
-- [ ] PR write-back: branch → commit artifact → open PR
+- [x] PR write-back (`--pr`): branch → commit artifact → open PR
 - [ ] Resumable state store (SQLite): `run` / `resume` / `status`
 - [ ] Phase gates: halt + `forge gate approve <phase>`
 
