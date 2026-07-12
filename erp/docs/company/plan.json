@@ -1,0 +1,258 @@
+{
+  "mission": "Build a model-driven cloud ERP for Financials and Supply Chain Management, modeled on Microsoft Dynamics 365, using a platform of engines and metadata modules, with quality assured through gated delivery, contracts-first design, and rigorous review.",
+  "organization": {
+    "hats": [
+      {
+        "name": "CEO",
+        "role": "CEO",
+        "responsibilities": [
+          "Company plan, roadmap, phase gates",
+          "Overall coordination and delegation"
+        ]
+      },
+      {
+        "name": "Product Owner",
+        "role": "Product Owner",
+        "responsibilities": [
+          "Domain prioritization",
+          "Reference material curation",
+          "Gate approval"
+        ]
+      },
+      {
+        "name": "Solution Architect",
+        "role": "Solution Architect",
+        "responsibilities": [
+          "Architectural decisions",
+          "Engine design",
+          "Platform spec schemas"
+        ]
+      },
+      {
+        "name": "Data Architect",
+        "role": "Data Architect",
+        "responsibilities": [
+          "Storage schema design",
+          "Postgres hybrid model",
+          "Migrations and RLS"
+        ]
+      },
+      {
+        "name": "Security Architect",
+        "role": "Security Architect",
+        "responsibilities": [
+          "Auth, SoD, audit",
+          "Security policies",
+          "Vulnerability reviews"
+        ]
+      },
+      {
+        "name": "Tech Lead",
+        "role": "Tech Lead",
+        "responsibilities": [
+          "Expression language (JSON-logic)",
+          "Action vocabulary",
+          "Microservice implementation",
+          "Engineering standards"
+        ]
+      },
+      {
+        "name": "Domain Modeler (Financials)",
+        "role": "Domain Modeler (Financials)",
+        "responsibilities": [
+          "Financials metadata modules",
+          "D365 Financials reference digest",
+          "Financial domain schemas"
+        ]
+      },
+      {
+        "name": "Domain Modeler (Supply Chain)",
+        "role": "Domain Modeler (Supply Chain)",
+        "responsibilities": [
+          "Supply Chain metadata modules",
+          "D365 Supply Chain reference digest",
+          "Supply Chain domain schemas"
+        ]
+      },
+      {
+        "name": "Frontend Developer",
+        "role": "Frontend Developer",
+        "responsibilities": [
+          "Generic UI shell",
+          "Admin Studio",
+          "Form/list rendering from metadata"
+        ]
+      },
+      {
+        "name": "QA Engineer",
+        "role": "QA Engineer",
+        "responsibilities": [
+          "Test strategy",
+          "Contracts-first validation",
+          "Automated test suites",
+          "Schema validation CI"
+        ]
+      },
+      {
+        "name": "DevOps Engineer",
+        "role": "DevOps Engineer",
+        "responsibilities": [
+          "CI/CD pipeline",
+          "Docker setup",
+          "GitHub automation",
+          "Release management"
+        ]
+      },
+      {
+        "name": "Technical Writer",
+        "role": "Technical Writer",
+        "responsibilities": [
+          "Documentation",
+          "ADR compliance",
+          "User guides",
+          "API docs"
+        ]
+      }
+    ]
+  },
+  "roadmap": [
+    {
+      "name": "Phase 1: Foundation - Reference & Platform Spec",
+      "goal": "Establish domain knowledge base (D365 Financials & Supply Chain), define platform spec JSON schemas, set up CI/CD and GitHub workflow.",
+      "exit_criteria": [
+        "Published D365 Financials and Supply Chain reference digests.",
+        "Platform spec JSON schemas (entities, fields, forms, workflows, rules, actions) defined and validated.",
+        "Mono repo with CI pipeline (lint, test, schema validation) operational.",
+        "Contribution model documented and GitHub issue/branch/PR workflow active."
+      ]
+    },
+    {
+      "name": "Phase 2: Engine Core - Metadata, Data, Auth",
+      "goal": "Build and test the Metadata Engine (loading/versioning), Schema Engine (DDL generation/migration), and Auth Engine (multi-company RLS, roles).",
+      "exit_criteria": [
+        "Metadata Engine can load and validate metadata packages into meta.* tables.",
+        "Schema Engine generates ent_* tables with typed columns and extras JSONB; migration rollback works.",
+        "Auth Engine enforces company_id RLS on all transactional tables; role-based access control functional.",
+        "All engines covered by automated unit and integration tests."
+      ]
+    },
+    {
+      "name": "Phase 3: Workflow, Expression, and UI Engines",
+      "goal": "Implement Workflow Engine (JSON-logic conditions + action vocabulary), Expression Engine (field formulas), and generic Frontend Shell/Studio.",
+      "exit_criteria": [
+        "Workflow Engine can process rules and actions (set-field, update-record, send-notification, etc.) with audit trail.",
+        "Expression Engine evaluates JSON-logic formulas correctly in form/field contexts.",
+        "Frontend Shell renders any entity form/list from metadata; Admin Studio allows basic metadata authoring.",
+        "Security audit of action vocabulary passes."
+      ]
+    },
+    {
+      "name": "Phase 4: Financials Module - Metadata Authoring & Validation",
+      "goal": "Author and test complete Financials metadata (GL, AP, AR, Bank, Financial Dimensions) using D365 reference.",
+      "exit_criteria": [
+        "Financials metadata package loaded and validated by Metadata Engine.",
+        "Core financial processes (journal entry, invoice, payment, reconciliation) work end-to-end.",
+        "Multi-company ledger isolation confirmed via integration tests.",
+        "SoD controls for financial actions in place."
+      ]
+    },
+    {
+      "name": "Phase 5: Supply Chain Module - Metadata Authoring & Validation",
+      "goal": "Author and test complete Supply Chain metadata (Procurement, Inventory, Sales, Production, Warehouse) using D365 reference.",
+      "exit_criteria": [
+        "Supply Chain metadata package loaded and validated.",
+        "Core supply chain processes (PO, SO, transfer, picking, receipt) work end-to-end.",
+        "Integration between Financials and Supply Chain (cost posting, inventory valuation) verified.",
+        "Performance benchmarks met (queries, reporting)."
+      ]
+    },
+    {
+      "name": "Phase 6: v1.0 Release - Integration, Performance, Documentation",
+      "goal": "Integration testing, performance tuning, comprehensive documentation, and final release.",
+      "exit_criteria": [
+        "End-to-end regression suite passes.",
+        "Deployment scripts for production (single-company, Docker compose) tested.",
+        "User and admin documentation published.",
+        "Fit-gap analysis against D365 v1 features completed and signed off."
+      ]
+    }
+  ],
+  "contribution_model": "All work flows through GitHub: tasks are created as issues with labels for phase and type (spec, code, metadata, test, doc). Each issue is assigned to a single hat. Work begins by creating a branch from the issue. All changes must be in a pull request (PR) referencing the issue; PRs must pass automated CI (lint, test, schema validation) and be reviewed by a different hat than the author. Approved PRs are merged to the main branch. Milestones (via GitHub tags) correspond to phases; each PR must be tagged with the phase milestone. The CEO or Product Owner gates phase transitions by verifying phase exit criteria and closing the milestone.",
+  "first_phase": {
+    "name": "Phase 1: Foundation - Reference & Platform Spec",
+    "tasks": [
+      {
+        "id": "T1",
+        "title": "Author D365 Financials Reference Digest",
+        "role": "Domain Modeler (Financials)",
+        "type": "spec",
+        "description": "Compile a structured digest of Dynamics 365 Financials domain entities, fields, workflows, and business rules from public documentation. Output as a markdown file in docs/reference/financials/. This will be the authoritative source for all Financials metadata authoring in later phases.",
+        "depends_on": []
+      },
+      {
+        "id": "T2",
+        "title": "Author D365 Supply Chain Reference Digest",
+        "role": "Domain Modeler (Supply Chain)",
+        "type": "spec",
+        "description": "Compile a structured digest of Dynamics 365 Supply Chain Management domain entities, fields, workflows, and business rules from public documentation. Output as a markdown file in docs/reference/supply-chain/. This will be the authoritative source for all Supply Chain metadata authoring in later phases.",
+        "depends_on": []
+      },
+      {
+        "id": "T3",
+        "title": "Define Core Entity Metadata Schema",
+        "role": "Solution Architect",
+        "type": "spec",
+        "description": "Author the JSON Schema for core entity metadata: entity, field, form, list view, and relationship definitions. This schema lives in platform-spec/schemas/ and validates all downstream metadata packages. Must support typed fields, mandatory company_id, and extensibility via extras JSONB.",
+        "depends_on": []
+      },
+      {
+        "id": "T4",
+        "title": "Define Workflow and Action Vocabulary Schema",
+        "role": "Tech Lead",
+        "type": "spec",
+        "description": "Define JSON schemas for workflow conditions (JSON-logic subset) and the curated action vocabulary (set-field, update-record, etc.). These schemas in platform-spec/schemas/ will be used to validate all rule and workflow metadata. Include examples and refer to ADR-0003.",
+        "depends_on": []
+      },
+      {
+        "id": "T5",
+        "title": "Set Up Mono Repo and CI Pipeline",
+        "role": "DevOps Engineer",
+        "type": "code",
+        "description": "Initialize the monorepo structure with folders for platform-spec, engines, frontend, metadata, docs, and tests. Configure GitHub Actions for CI: linting (ESLint, Prettier), unit tests (Jest), and schema validation (ajv). Include Dockerfile for local development. Ensure harness (Rust) can run locally and trigger CI.",
+        "depends_on": []
+      },
+      {
+        "id": "T6",
+        "title": "Create Contribution Model Document",
+        "role": "CEO",
+        "type": "doc",
+        "description": "Write the contribution model (as described in the company plan) into CONTRIBUTING.md. Include GitHub issue/branch/PR workflow, labeling conventions, and review requirements. This document is the authoritative guide for all agents.",
+        "depends_on": [
+          "T5"
+        ]
+      },
+      {
+        "id": "T7",
+        "title": "Validate Entity Schema Against Financials Reference",
+        "role": "QA Engineer",
+        "type": "test",
+        "description": "Create automated tests that validate the core entity metadata schema (T3) against sample entities from the Financials reference digest (T1). Ensure the schema can represent GL Account, Journal, Invoice, etc. Report any gaps.",
+        "depends_on": [
+          "T1",
+          "T3"
+        ]
+      },
+      {
+        "id": "T8",
+        "title": "Validate Workflow Schema Against Supply Chain Reference",
+        "role": "QA Engineer",
+        "type": "test",
+        "description": "Create automated tests that validate the workflow schema (T4) against sample workflows from the Supply Chain reference digest (T2). Ensure the action vocabulary covers typical procurement and inventory actions.",
+        "depends_on": [
+          "T2",
+          "T4"
+        ]
+      }
+    ]
+  }
+}
