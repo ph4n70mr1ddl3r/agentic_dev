@@ -1,5 +1,6 @@
 pub mod architect;
 pub mod ceo;
+pub mod tech_lead;
 
 use std::path::PathBuf;
 
@@ -23,6 +24,15 @@ pub fn extract_json(raw: &str) -> &str {
     trimmed
 }
 
+/// Does a hat exist for this role? (Single source of truth shared with the
+/// orchestrator so "skipped: no hat" never disagrees with dispatch.)
+pub fn has_hat(role: &str) -> bool {
+    matches!(
+        role.trim().to_ascii_lowercase().as_str(),
+        "solution architect" | "architect" | "tech lead" | "tech-lead"
+    )
+}
+
 /// Everything a hat needs to do its job: the LLM, the schema registry (for
 /// mechanical review + the contract text), and the examples dir (templates).
 pub struct HatContext<'a> {
@@ -31,8 +41,7 @@ pub struct HatContext<'a> {
     pub examples_dir: PathBuf,
 }
 
-/// Dispatch a task to its owning hat. Only the Architect is wired so far; the
-/// match grows as more hats land (Domain Modeler, Tech Lead, QA, ...).
+/// Dispatch a task to its owning hat. Gains an arm per hat.
 pub async fn run_task(task: &Task, ctx: &HatContext<'_>) -> Result<Value> {
     match task.role.trim().to_ascii_lowercase().as_str() {
         "solution architect" | "architect" => {
@@ -49,9 +58,16 @@ pub async fn run_task(task: &Task, ctx: &HatContext<'_>) -> Result<Value> {
             )
             .await
         }
-        _other => Err(anyhow!(
-            "no agent implemented for role {:?} (only Solution Architect so far)",
-            task.role
+        "tech lead" | "tech-lead" => {
+            let wf = ctx.registry.schema_text(tech_lead::WORKFLOW_SCHEMA_ID)?;
+            let jl = ctx.registry.schema_text(tech_lead::JSON_LOGIC_SCHEMA_ID)?;
+            let ac = ctx.registry.schema_text(tech_lead::ACTION_SCHEMA_ID)?;
+            let example_text = read(ctx.examples_dir.join("workflow.json"))?;
+            tech_lead::run_tech_lead(ctx.llm, ctx.registry, task, wf, jl, ac, &example_text).await
+        }
+        other => Err(anyhow!(
+            "no agent implemented for role {:?} (hats so far: Solution Architect, Tech Lead)",
+            other
         )),
     }
 }

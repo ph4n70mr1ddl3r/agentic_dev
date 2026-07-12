@@ -2,7 +2,7 @@
   "audit": true,
   "category": "organization",
   "companyScoped": false,
-  "description": "Master entity representing a legal entity or organization. All transactional entities reference this via companyId.",
+  "description": "Master data entity representing a legal entity or organization. All transactional entities reference this via companyId.",
   "fields": [
     {
       "label": {
@@ -63,13 +63,6 @@
         "code"
       ],
       "name": "by-code",
-      "unique": true
-    },
-    {
-      "fields": [
-        "name"
-      ],
-      "name": "by-name",
       "unique": true
     }
   ],

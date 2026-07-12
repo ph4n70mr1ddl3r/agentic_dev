@@ -1,0 +1,100 @@
+{
+  "description": "Lifecycle of a company record from prospect to active to inactive.",
+  "entity": "Company",
+  "id": "company-lifecycle",
+  "initialState": "Prospect",
+  "label": {
+    "en": "Company Lifecycle"
+  },
+  "name": "CompanyLifecycle",
+  "states": [
+    {
+      "label": {
+        "en": "Prospect"
+      },
+      "name": "Prospect"
+    },
+    {
+      "label": {
+        "en": "Active"
+      },
+      "name": "Active"
+    },
+    {
+      "label": {
+        "en": "Inactive"
+      },
+      "name": "Inactive",
+      "terminal": true
+    }
+  ],
+  "transitions": [
+    {
+      "from": [
+        "Prospect"
+      ],
+      "label": {
+        "en": "Activate"
+      },
+      "name": "activate",
+      "to": "Active"
+    },
+    {
+      "actions": [
+        {
+          "action": "set-field",
+          "field": "status",
+          "value": "Inactive"
+        },
+        {
+          "action": "send-notification",
+          "template": "company-deactivated",
+          "to": {
+            "var": "adminEmail"
+          }
+        }
+      ],
+      "from": [
+        "Active"
+      ],
+      "guard": {
+        "==": [
+          {
+            "var": "status"
+          },
+          "Active"
+        ]
+      },
+      "label": {
+        "en": "Deactivate"
+      },
+      "name": "deactivate",
+      "to": "Inactive"
+    },
+    {
+      "actions": [
+        {
+          "action": "set-field",
+          "field": "status",
+          "value": "Active"
+        }
+      ],
+      "from": [
+        "Inactive"
+      ],
+      "guard": {
+        "==": [
+          {
+            "var": "status"
+          },
+          "Inactive"
+        ]
+      },
+      "label": {
+        "en": "Reinstate"
+      },
+      "name": "reinstate",
+      "to": "Active"
+    }
+  ]
+}

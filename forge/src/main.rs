@@ -8,6 +8,7 @@ mod config;
 mod github;
 mod issues;
 mod llm;
+mod orchestrator;
 mod plan;
 mod render;
 mod schema;
@@ -61,12 +62,13 @@ enum Command {
         #[arg(long)]
         github_repo: Option<String>,
     },
-    /// Run a single task's owning hat to produce a schema-validated artifact.
-    /// (Currently only the Architect hat / entity artifacts are implemented.)
+    /// Run a hat to produce a schema-validated artifact. With a task id, runs
+    /// that one task; without, orchestrates the whole first phase (DAG-aware,
+    /// runs every task whose role has a hat and whose deps are satisfied).
     Run {
-        /// Task id from the plan, e.g. T3 (case-insensitive).
-        task: String,
-        /// Output dir for the artifact, relative to --repo (written as <entity-id>.json).
+        /// Task id from the plan, e.g. T3 (case-insensitive). Omit to run the phase.
+        task: Option<String>,
+        /// Output dir for artifacts, relative to --repo (written as <id>.json).
         #[arg(long, default_value = "modules/generated")]
         out: PathBuf,
     },
@@ -167,7 +169,6 @@ async fn main() -> Result<()> {
             tracing::info!(
                 model = %config.model,
                 thinking = config.thinking,
-                task = %task_id,
                 "running hat"
             );
             let llm = llm::Llm::new(config)?;
@@ -177,38 +178,58 @@ async fn main() -> Result<()> {
                 .map_err(|e| anyhow::anyhow!("reading plan {}: {e}", plan_path.display()))?;
             let company_plan: plan::CompanyPlan = serde_json::from_str(&plan_text)
                 .with_context(|| format!("parse plan {}", plan_path.display()))?;
-            let task = company_plan
-                .first_phase
-                .tasks
-                .iter()
-                .find(|t| t.id.eq_ignore_ascii_case(&task_id))
-                .ok_or_else(|| anyhow::anyhow!("task {task_id:?} not found in first phase"))?;
 
             let schemas_dir = resolve(&cli.repo, std::path::Path::new("platform-spec/schemas"));
             let examples_dir = resolve(&cli.repo, std::path::Path::new("platform-spec/examples"));
             let registry = schema::SchemaRegistry::load_dir(&schemas_dir)?;
+            let out_dir = resolve(&cli.repo, &out);
 
             let ctx = agents::HatContext {
                 llm: &llm,
                 registry: &registry,
                 examples_dir,
             };
-            tracing::info!(task = %task.id, role = %task.role, "dispatching hat");
-            let artifact = agents::run_task(task, &ctx).await?;
 
-            let id = artifact
-                .get("id")
-                .and_then(|v| v.as_str())
-                .unwrap_or("artifact");
-            let out_dir = resolve(&cli.repo, &out);
-            std::fs::create_dir_all(&out_dir)?;
-            let file = out_dir.join(format!("{id}.json"));
-            std::fs::write(
-                &file,
-                format!("{}\n", serde_json::to_string_pretty(&artifact)?),
-            )?;
-            println!("wrote {}", file.display());
-            tracing::info!(artifact = %file.display(), "hat produced a schema-validated artifact");
+            match task_id {
+                Some(task_id) => {
+                    let task = company_plan
+                        .first_phase
+                        .tasks
+                        .iter()
+                        .find(|t| t.id.eq_ignore_ascii_case(&task_id))
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("task {task_id:?} not found in first phase")
+                        })?;
+                    if !agents::has_hat(&task.role) {
+                        return Err(anyhow::anyhow!(
+                            "task {} has role {:?} with no implemented hat",
+                            task.id,
+                            task.role
+                        ));
+                    }
+                    tracing::info!(task = %task.id, role = %task.role, "dispatching hat");
+                    let artifact = agents::run_task(task, &ctx).await?;
+                    let file = orchestrator::write_artifact(&out_dir, &artifact)?;
+                    println!("wrote {}", file.display());
+                    tracing::info!(
+                        artifact = %file.display(),
+                        "hat produced a schema-validated artifact"
+                    );
+                }
+                None => {
+                    tracing::info!("orchestrating first phase (DAG-aware)");
+                    let report = orchestrator::run_phase(&company_plan, &ctx, &out_dir).await?;
+                    println!(
+                        "\nphase run: {} done, {} skipped, {} failed",
+                        report.done.len(),
+                        report.skipped.len(),
+                        report.failed.len()
+                    );
+                    if !report.failed.is_empty() {
+                        return Err(anyhow::anyhow!("{} task(s) failed", report.failed.len()));
+                    }
+                }
+            }
             Ok(())
         }
     }
