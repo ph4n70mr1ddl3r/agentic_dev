@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use std::time::Duration;
 
 /// Environment-driven configuration for the LLM (DeepSeek, OpenAI-compatible).
 ///
@@ -16,6 +17,7 @@ pub struct Config {
     pub thinking: bool,
     pub reasoning_effort: Option<String>,
     pub max_tokens: u32,
+    pub timeout: Duration,
 }
 
 impl Config {
@@ -36,15 +38,23 @@ impl Config {
             .map(|v| matches!(v.as_str(), "1" | "true" | "enabled"))
             .unwrap_or(false);
 
+        // `reasoning_effort` default is applied by `finalize_reasoning()` once
+        // the final `thinking` flag is known (commands may override thinking).
         let reasoning_effort = std::env::var("DEEPSEEK_REASONING_EFFORT")
             .ok()
-            .filter(|s| !s.is_empty())
-            .or_else(|| if thinking { Some("high".into()) } else { None });
+            .filter(|s| !s.is_empty());
 
         let max_tokens = std::env::var("DEEPSEEK_MAX_TOKENS")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(8192);
+
+        let timeout = Duration::from_secs(
+            std::env::var("DEEPSEEK_TIMEOUT_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(180),
+        );
 
         Ok(Self {
             api_key,
@@ -53,6 +63,17 @@ impl Config {
             thinking,
             reasoning_effort,
             max_tokens,
+            timeout,
         })
+    }
+
+    /// Apply the default reasoning effort once the final `thinking` flag is
+    /// settled. Commands (e.g. the CEO forcing thinking on) call this after
+    /// they may have flipped `thinking`, so the "high by default when thinking"
+    /// rule lives in exactly one place.
+    pub fn finalize_reasoning(&mut self) {
+        if self.thinking && self.reasoning_effort.is_none() {
+            self.reasoning_effort = Some("high".into());
+        }
     }
 }

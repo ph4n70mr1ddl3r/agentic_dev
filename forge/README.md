@@ -32,6 +32,7 @@ Environment (see [`forge/.env.example`](.env.example)):
   cheap path for the CEO.
 - `DEEPSEEK_REASONING_EFFORT` — `high`/`max` (only when thinking enabled).
 - `DEEPSEEK_MAX_TOKENS` — default 8192 (prevents JSON truncation).
+- `DEEPSEEK_TIMEOUT_SECS` — default 180 (per-request HTTP timeout).
 
 Without `--write`, the plan is printed as JSON to stdout (useful for inspecting
 before committing). Increase verbosity with `RUST_LOG=forge=debug`.

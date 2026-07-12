@@ -5,7 +5,7 @@ use crate::plan::CompanyPlan;
 
 pub const CEO_SYSTEM: &str = r#"You are the CEO of a virtual software company made of AI agents. Each agent wears a "hat" (a role). The company builds software end-to-end, as one big company would.
 
-You will be given a COMPANY BRIEF: the founders' goal and hard constraints. They are IMMUTABLE — plan within them.
+You will be given a COMPANY BRIEF (the founders' goal and hard constraints) and the ARCHITECTURE DECISION RECORDS (the immutable technical decisions already made). They are IMMUTABLE — plan within them.
 
 Produce the company's plan:
 1. Mission — restate it in one or two sentences.
@@ -30,11 +30,18 @@ Respond with ONLY a JSON object with EXACTLY this shape:
 }
 Output nothing but the JSON object."#;
 
-/// Run the CEO hat: read the brief, return a structured company plan.
-pub async fn run_ceo(llm: &Llm, brief: &str) -> Result<CompanyPlan> {
-    let user = format!(
-        "COMPANY BRIEF:\n\n{brief}\n\nNow produce the company plan as a JSON object."
-    );
+/// Run the CEO hat: read the brief (+ ADRs, if provided), return a structured
+/// company plan.
+pub async fn run_ceo(llm: &Llm, brief: &str, adrs: &str) -> Result<CompanyPlan> {
+    let mut user = format!("COMPANY BRIEF:\n\n{brief}\n\n");
+    if !adrs.trim().is_empty() {
+        user.push_str(
+            "ARCHITECTURE DECISION RECORDS (immutable constraints — plan within them):\n\n",
+        );
+        user.push_str(adrs);
+        user.push_str("\n\n");
+    }
+    user.push_str("Now produce the company plan as a JSON object.");
     let raw = llm.chat_json(CEO_SYSTEM, &user).await?;
     let json = extract_json(&raw);
     serde_json::from_str::<CompanyPlan>(json).map_err(|e| {

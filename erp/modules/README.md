@@ -15,5 +15,6 @@ modules/
 Each module folder contains: `entities/*.json`, `forms/*.json`, `lists/*.json`,
 `workflows/*.json`, `rules/*.json`, `permissions/*.json`, and `seed/*.json`.
 
-See [artifact catalog](../docs/governance/artifact-catalog.md) (`MOD`, `SEED`)
-and the [project plan](../docs/governance/project-plan.md) for the v1 scope.
+These are the `MOD` (module) and `SEED` (seed-data) artifacts. See
+[ADR-0001](../docs/adr/0001-model-driven-architecture.md); the CEO-authored
+roadmap (v1 scope, phased) is written to `docs/company/` by `forge`.

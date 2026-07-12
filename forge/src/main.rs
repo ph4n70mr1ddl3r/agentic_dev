@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
 mod agents;
@@ -57,9 +57,7 @@ async fn main() -> Result<()> {
             let mut config = config::Config::from_env()?;
             // The CEO thinks by default (one-shot planning; quality > cost here).
             config.thinking = !no_thinking;
-            if config.thinking && config.reasoning_effort.is_none() {
-                config.reasoning_effort = Some("high".into());
-            }
+            config.finalize_reasoning();
             tracing::info!(
                 model = %config.model,
                 base = %config.base_url,
@@ -73,7 +71,10 @@ async fn main() -> Result<()> {
             let brief_text = std::fs::read_to_string(&brief_path)
                 .map_err(|e| anyhow::anyhow!("reading brief {}: {e}", brief_path.display()))?;
 
-            let plan = agents::ceo::run_ceo(&llm, &brief_text).await?;
+            let adrs = read_adrs(&resolve(&cli.repo, std::path::Path::new("docs/adr")));
+
+            let plan = agents::ceo::run_ceo(&llm, &brief_text, &adrs).await?;
+            plan.validate()?;
             tracing::info!(
                 hats = plan.organization.hats.len(),
                 phases = plan.roadmap.len(),
@@ -98,5 +99,44 @@ fn resolve(repo: &std::path::Path, p: &std::path::Path) -> PathBuf {
         p.to_path_buf()
     } else {
         repo.join(p)
+    }
+}
+
+/// Concatenate all accepted ADRs (excluding the template) under `dir`.
+///
+/// ADRs are part of the founders' seed; the CEO must plan within them. If the
+/// directory can't be read we warn and return an empty string so the CEO can
+/// still run against a repo that only has a brief.
+fn read_adrs(dir: &std::path::Path) -> String {
+    let read = || -> Result<String> {
+        let mut paths: Vec<PathBuf> = std::fs::read_dir(dir)
+            .with_context(|| format!("listing ADR dir {}", dir.display()))?
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .filter(|p| {
+                p.extension().and_then(|s| s.to_str()) == Some("md")
+                    && p.file_name().and_then(|s| s.to_str()) != Some("0000-template.md")
+            })
+            .collect();
+        paths.sort();
+
+        let mut out = String::new();
+        for p in &paths {
+            let body = std::fs::read_to_string(p)
+                .with_context(|| format!("reading ADR {}", p.display()))?;
+            out.push_str(&body);
+            if !out.ends_with('\n') {
+                out.push('\n');
+            }
+            out.push('\n');
+        }
+        Ok(out)
+    };
+    match read() {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::warn!(error = %e, "could not read ADRs; continuing with brief only");
+            String::new()
+        }
     }
 }
