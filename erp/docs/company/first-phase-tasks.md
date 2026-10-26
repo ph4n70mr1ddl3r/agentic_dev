@@ -1,4 +1,4 @@
-# First Phase: Phase 1: Foundation - Reference & Platform Spec
+# Phase 1: Foundation - Reference & Platform Spec
 
 _Authored by the CEO hat via `forge`._
 

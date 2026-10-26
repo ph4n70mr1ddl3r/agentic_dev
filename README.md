@@ -23,7 +23,7 @@ agentic_dev/
   (metadata, data, workflow, auth, reporting, notification, audit, gateway)
   plus business modules as metadata. Start at **[`erp/README.md`](erp/README.md)**.
 - **[`forge/`](forge/)** — the Rust orchestrator that instantiates the virtual
-  company's 15 "hats" as agents, drives the GitHub-native workflow, and keeps
+  company's 12 "hats" as agents, drives the GitHub-native workflow, and keeps
   state resumable.
 
 ## Why it works with a weak model

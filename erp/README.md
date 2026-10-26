@@ -4,9 +4,9 @@ A **metadata-driven** cloud ERP, built end-to-end as if by a virtual software
 company of AI agents. v1 scope: **Financials** and **Supply Chain Management**,
 modeled on **Microsoft Dynamics 365** (public docs = ground truth for the agents).
 
-> **Status:** Phase 0 — Foundation **seed** complete. The company plan
-> (organization, roadmap, artifact set, contribution model, task breakdown) is
-> **authored by the CEO hat** via the `forge` harness — not hand-written here.
+> **Status:** Phase 1 (Foundation) complete — company plan authored, platform-spec
+> schemas + examples validated, D365 reference digests + conformance test-plans
+> generated, phase gate closed (ADR-0005).
 
 ## Seed
 

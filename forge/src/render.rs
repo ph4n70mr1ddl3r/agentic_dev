@@ -51,7 +51,7 @@ fn roadmap_md(p: &CompanyPlan) -> String {
     for (i, ph) in p.roadmap.iter().enumerate() {
         s.push_str(&format!(
             "| {} | **{}** | {} | {} |\n",
-            i,
+            i + 1,
             md_cell(&ph.name),
             md_cell(ph.goal.trim()),
             md_cell(&ph.exit_criteria.join("; ")),
