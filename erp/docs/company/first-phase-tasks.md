@@ -19,13 +19,13 @@ _Authored by the CEO hat via `forge`._
 - **Role:** Domain Modeler (Financials)
 - **Type:** spec
 
-Compile a structured digest of Dynamics 365 Financials domain entities, fields, workflows, and business rules from public documentation. Output as a markdown file in docs/reference/financials/. This will be the authoritative source for all Financials metadata authoring in later phases.
+Compile a structured digest of Dynamics 365 Financials domain entities, fields, workflows, and business rules from public documentation. Output as a schema-validated domain-reference JSON in modules/generated/ (with a rendered markdown companion). This will be the authoritative source for all Financials metadata authoring in later phases.
 
 ### T2 — Author D365 Supply Chain Reference Digest
 - **Role:** Domain Modeler (Supply Chain)
 - **Type:** spec
 
-Compile a structured digest of Dynamics 365 Supply Chain Management domain entities, fields, workflows, and business rules from public documentation. Output as a markdown file in docs/reference/supply-chain/. This will be the authoritative source for all Supply Chain metadata authoring in later phases.
+Compile a structured digest of Dynamics 365 Supply Chain Management domain entities, fields, workflows, and business rules from public documentation. Output as a schema-validated domain-reference JSON in modules/generated/ (with a rendered markdown companion). This will be the authoritative source for all Supply Chain metadata authoring in later phases.
 
 ### T3 — Define Core Entity Metadata Schema
 - **Role:** Solution Architect
