@@ -53,12 +53,23 @@ for (const ex of fs.readdirSync(EX_DIR).filter((f) => f.endsWith('.json'))) {
 }
 
 // (2b) $kind-tagged generated artifacts validate against their kind's schema.
+// Entities and workflows carry no $kind discriminator (their schemas don't
+// allow one), so map known non-kind artifacts to their schema explicitly.
+const NON_KIND = {
+  'company.json': 'entity.schema.json',
+  'company-lifecycle.json': 'workflow.schema.json',
+};
 if (fs.existsSync(GEN_DIR)) {
   for (const f of fs.readdirSync(GEN_DIR).filter((f) => f.endsWith('.json'))) {
     const data = JSON.parse(fs.readFileSync(path.join(GEN_DIR, f), 'utf8'));
     const kind = data['$kind'];
-    if (!kind) continue; // entities/workflows carry no $kind tag
-    check(`modules/generated/${f}`, `${kind}.schema.json`, data);
+    if (kind) {
+      check(`modules/generated/${f}`, `${kind}.schema.json`, data);
+      continue;
+    }
+    const schemaFile = NON_KIND[f];
+    if (!schemaFile) continue; // untracked artifact — not gate-covered yet
+    check(`modules/generated/${f}`, schemaFile, data);
   }
 }
 

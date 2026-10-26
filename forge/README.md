@@ -110,7 +110,7 @@ Implemented hats:
   over a reference + schema), self-checked semantically before acceptance, then
   executed by `forge check` / the orchestrator.
 
-Other hats (Domain Modeler, QA, DevOps) land as the harness grows.
+DevOps (and any future hats) land as the harness grows.
 
 The reviewer **is the JSON Schema itself** — structural correctness is free, so
 a future reviewer hat only needs to judge domain semantics. Worker hats default
