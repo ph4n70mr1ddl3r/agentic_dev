@@ -21,9 +21,7 @@ Everything is GitHub-native — the repo *is* the project state.
 3. **Review = PRs.** Every artifact is a PR. **Author ≠ reviewer** (segregation
    of duties). Structural correctness is enforced mechanically — see *Gates*
    below; the human/domain reviewer judges content.
-4. **Milestones = phases.** A GitHub milestone tags the phase. A phase closes
-   behind a **human gate** (`forge gate <phase>`); no later-phase work begins
-   before the prior gate is approved (ADR-0005).
+4. **Milestones = phases.** A GitHub milestone tags the phase. A phase closes behind a human gate (`forge gate <phase>`); no later-phase work begins before the prior gate is approved (ADR-0005).
 
 ## Gates (mechanical review)
 

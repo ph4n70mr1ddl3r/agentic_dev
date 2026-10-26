@@ -9,14 +9,14 @@ agents, talks to GitHub, and enforces an artifact-driven, gated workflow. The
 executing model is a cheap/weak model (DeepSeek V4 Flash); quality comes from
 **process structure**, not model strength.
 
-> **Status:** Phase 0 seed complete — the CEO hat (via `forge`) plans next
+> **Status:** Phase 1 (Foundation) complete — company plan authored, platform-spec schemas + examples validated, D365 reference digests + conformance test-plans generated, phase gate closed (ADR-0005).
 
 ## What's in this repo
 
 ```
 agentic_dev/
 ├── erp/     the PRODUCT — a model-driven ERP (engines + metadata modules)
-└── forge/   the COMPANY — Rust harness that runs the agents (TBD)
+└── forge/   the COMPANY — Rust harness that runs the agents
 ```
 
 - **[`erp/`](erp/)** — the ERP product itself: a platform of engines

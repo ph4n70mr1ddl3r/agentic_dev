@@ -292,6 +292,29 @@ async fn main() -> Result<()> {
                             println!("wrote companion {}", out_dir.join(name).display());
                         }
                     }
+                    if artifact.get("$kind").and_then(|v| v.as_str()) == Some("test-plan") {
+                        match crate::agents::qa::check_plan(ctx.registry, &artifact) {
+                            Ok(r) => {
+                                println!(
+                                    "qa       {}  {}/{} assertions passed",
+                                    task.id, r.passed, r.total
+                                );
+                                for f in &r.failed {
+                                    println!(
+                                        "  FAIL    {} (expected {}, was {})",
+                                        f.name, f.expected, f.actual
+                                    );
+                                }
+                                if !r.all_passed() {
+                                    return Err(anyhow::anyhow!(
+                                        "test-plan {} failed semantic validation",
+                                        task.id
+                                    ));
+                                }
+                            }
+                            Err(e) => println!("qa       {}  check error: {e}", task.id),
+                        }
+                    }
                     if let Some((g, b)) = pr_ctx {
                         let kind = pr::kind_for_role(&task.role);
                         let inp = pr::PrInput {
