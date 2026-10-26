@@ -157,6 +157,9 @@ pub async fn run_phase(
                             println!("wrote    {id}  companion {name}");
                         }
                     }
+                    // QA semantic gate: a test-plan artifact must execute cleanly,
+                    // or the task is not done. Mirrors `forge run <task>` (main.rs)
+                    // so a failing plan never lands as `done`.
                     if artifact.get("$kind").and_then(|v| v.as_str()) == Some("test-plan") {
                         match crate::agents::qa::check_plan(ctx.registry, &artifact) {
                             Ok(r) => {
@@ -170,8 +173,30 @@ pub async fn run_phase(
                                         f.name, f.expected, f.actual
                                     );
                                 }
+                                if !r.all_passed() {
+                                    let msg = format!(
+                                        "{} of {} assertions failed",
+                                        r.failed.len(),
+                                        r.total
+                                    );
+                                    let _ = opts
+                                        .state
+                                        .mark_failed(opts.phase, &task.id, &task.role, &msg);
+                                    report.failed.push((id.clone(), msg));
+                                    progress = true;
+                                    continue;
+                                }
                             }
-                            Err(e) => println!("qa       {id}  check error: {e}"),
+                            Err(e) => {
+                                let msg = format!("check error: {e}");
+                                println!("qa       {id}  check error: {e}");
+                                let _ = opts
+                                    .state
+                                    .mark_failed(opts.phase, &task.id, &task.role, &msg);
+                                report.failed.push((id.clone(), msg));
+                                progress = true;
+                                continue;
+                            }
                         }
                     }
                     if let Some((gh, base)) = opts.pr {

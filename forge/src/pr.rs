@@ -39,6 +39,7 @@ pub fn kind_for_role(role: &str) -> &'static str {
     match r.as_str() {
         "solution architect" | "architect" => "entity",
         "tech lead" | "tech-lead" => "workflow",
+        "qa engineer" | "qa" => "test-plan",
         _ => "artifact",
     }
 }
@@ -56,6 +57,7 @@ fn schema_for_kind(kind: &str) -> &'static str {
         "entity" => "entity.schema.json",
         "workflow" => "workflow.schema.json",
         "reference" => "domain-reference.schema.json",
+        "test-plan" => "test-plan.schema.json",
         _ => "platform-spec",
     }
 }
@@ -208,6 +210,7 @@ mod tests {
         assert_eq!(kind_for_role("Tech Lead"), "workflow");
         assert_eq!(kind_for_role("Domain Modeler (Financials)"), "reference");
         assert_eq!(kind_for_role("Domain Modeler (Supply Chain)"), "reference");
-        assert_eq!(kind_for_role("QA Engineer"), "artifact");
+        assert_eq!(kind_for_role("QA Engineer"), "test-plan");
+        assert_eq!(kind_for_role("qa"), "test-plan");
     }
 }
