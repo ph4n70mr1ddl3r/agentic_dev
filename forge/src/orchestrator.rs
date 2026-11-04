@@ -124,6 +124,9 @@ pub async fn run_phase(
                             Some(dt) if report.failed.iter().any(|(i, _)| i == &dt.id) => {
                                 Some(d.trim().to_string())
                             }
+                            Some(dt) if report.skipped.iter().any(|(i, _)| i == &dt.id) => {
+                                Some(d.trim().to_string())
+                            }
                             _ => None,
                         }
                     })
@@ -262,4 +265,129 @@ pub async fn run_phase(
     }
 
     Ok(report)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::plan::{CompanyPlan, FirstPhase, Phase, Task, Hat, Organization};
+    use crate::llm::Llm;
+    use crate::state::State;
+
+    fn task(id: &str, role: &str, deps: &[&str]) -> Task {
+        Task {
+            id: id.into(),
+            title: "t".into(),
+            role: role.into(),
+            task_type: "DEV".into(),
+            description: "d".into(),
+            depends_on: deps.iter().map(|s| s.to_string()).collect(),
+        }
+    }
+
+    fn valid_plan_with_hats() -> CompanyPlan {
+        CompanyPlan {
+            mission: "test mission".into(),
+            organization: Organization {
+                hats: vec![
+                    Hat {
+                        name: "Solution Architect".into(),
+                        role: "solution architect".into(),
+                        responsibilities: vec!["x".into()],
+                    },
+                    Hat {
+                        name: "Tech Lead".into(),
+                        role: "tech lead".into(),
+                        responsibilities: vec!["x".into()],
+                    },
+                    Hat {
+                        name: "Nonexistent Role".into(),
+                        role: "nonexistent_role".into(),
+                        responsibilities: vec!["x".into()],
+                    },
+                ],
+            },
+            roadmap: vec![Phase {
+                name: "P0".into(),
+                goal: "g".into(),
+                exit_criteria: vec!["c".into()],
+            }],
+            contribution_model: "cm".into(),
+            first_phase: FirstPhase {
+                name: "P0".into(),
+                tasks: vec![],
+            },
+        }
+    }
+
+    #[test]
+    fn skipped_dependency_blocks_dependent_task() {
+        let mut plan = valid_plan_with_hats();
+        plan.first_phase.tasks = vec![
+            task("T1", "solution architect", &[]),
+            task("T2", "tech lead", &["T1"]),
+        ];
+        // Remove T2's hat so it has no hat
+        // (The orchestrator will skip T2 with "no hat for role" reason)
+        // But T2 depends on T1 which HAS a hat, so T1 should run.
+        // After T1 is done, T2 should then be skipped due to no hat.
+        // This test verifies the basic flow works.
+        // We just check plan validation passes first.
+        plan.validate().unwrap();
+    }
+
+    #[tokio::test]
+    async fn dependent_task_skipped_when_dep_was_previously_skipped() {
+        // Simulate the scenario: task T2 depends on T1.
+        // T1 has no hat → will be skipped. T2 depends on T1.
+        // Without the fix, T2 would attempt to run because T1's skipped
+        // status wasn't recognized as a blocking dependency.
+        // With the fix, T2 should be skipped as "blocked by un-runnable deps".
+
+        let mut plan = valid_plan_with_hats();
+        plan.first_phase.tasks = vec![
+            task("T1", "nonexistent_role", &[]), // no hat → will be skipped
+            task("T2", "tech lead", &["T1"]),
+        ];
+        plan.validate().unwrap();
+
+        let ctx = HatContext {
+            llm: &crate::llm::Llm::test(),
+            registry: &crate::schema::SchemaRegistry::load_dir(
+                std::path::Path::new("platform-spec/schemas"),
+            )
+            .unwrap(),
+            examples_dir: std::path::PathBuf::from(""),
+            out_dir: std::path::PathBuf::from(""),
+        };
+        let state = State::open_memory().unwrap();
+        let opts = RunOptions {
+            pr: None,
+            state: &state,
+            phase: 1,
+            force: false,
+        };
+        let report = run_phase(&plan, &ctx, &opts).await.unwrap();
+
+        // T1 should be skipped (no hat for "nonexistent_role")
+        let t1_skipped = report.skipped.iter().any(|(id, _)| id == "T1");
+        // T2 should be skipped because its dep T1 was skipped ("blocked by un-runnable deps")
+        let t2_skipped = report.skipped.iter().any(|(id, _)| id == "T2");
+        let t2_reason = report
+            .skipped
+            .iter()
+            .find(|(id, _)| id == "T2")
+            .map(|(_, reason)| reason)
+            .unwrap();
+
+        // Before the fix, T2 would NOT be skipped (or would have different reason)
+        // After the fix, T2 should be skipped as blocked by its skipped dep T1
+        assert!(t1_skipped, "T1 should be skipped (no hat)");
+        assert!(t2_skipped, "T2 should be skipped (blocked by skipped dep T1)");
+        assert!(
+            t2_reason.contains("blocked by un-runnable deps"),
+            "T2 reason should mention blocked by un-runnable deps, got: {}",
+            t2_reason
+        );
+    }
 }

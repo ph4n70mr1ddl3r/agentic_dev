@@ -85,6 +85,26 @@ impl Llm {
         Ok(Self { client, config })
     }
 
+    /// Creates a minimal Llm for testing purposes (LLM calls are not made
+    /// when tasks are skipped due to missing hats or blocked dependencies).
+    #[cfg(test)]
+    pub fn test() -> Self {
+        Llm {
+            client: reqwest::Client::new(),
+            config: Config {
+                api_key: "test".into(),
+                base_url: "http://localhost".into(),
+                model: "test".into(),
+                thinking: false,
+                reasoning_effort: None,
+                max_tokens: 8192,
+                timeout: std::time::Duration::from_secs(30),
+            },
+        }
+    }
+
+    /// Send a system + user message and return the assistant's content as JSON
+
     /// Send a system + user message and return the assistant's content as JSON
     /// text.
     ///
