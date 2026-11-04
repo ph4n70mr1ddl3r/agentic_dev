@@ -134,3 +134,57 @@ pub fn render_companion(value: &Value) -> Option<(String, String)> {
 fn read(path: PathBuf) -> Result<String> {
     std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extract_json_plain() {
+        let raw = r#"{"id": "T1", "name": "Company"}"#;
+        let result = extract_json(raw);
+        assert_eq!(result, raw.trim());
+    }
+
+    #[test]
+    fn extract_json_triple_backticks_no_language() {
+        let raw = "```\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        assert_eq!(result, "{\"id\": \"T1\"}");
+    }
+
+    #[test]
+    fn extract_json_triple_backticks_json_language() {
+        let raw = "```json\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        assert_eq!(result, "{\"id\": \"T1\"}");
+    }
+
+    #[test]
+    fn extract_json_triple_backticks_javascript_language() {
+        let raw = "```javascript\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        assert_eq!(result, "{\"id\": \"T1\"}");
+    }
+
+    #[test]
+    fn extract_json_no_fences() {
+        let raw = "{'not': 'json'}"; // sort of
+        let result = extract_json(raw);
+        assert_eq!(result, raw.trim());
+    }
+
+    #[test]
+    fn extract_json_empty() {
+        let raw = "";
+        let result = extract_json(raw);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn extract_json_only_fences() {
+        let raw = "```";
+        let result = extract_json(raw);
+        assert_eq!(result, "");
+    }
+}
