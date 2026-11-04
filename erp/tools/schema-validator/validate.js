@@ -58,6 +58,10 @@ for (const ex of fs.readdirSync(EX_DIR).filter((f) => f.endsWith('.json'))) {
 const NON_KIND = {
   'company.json': 'entity.schema.json',
   'company-lifecycle.json': 'workflow.schema.json',
+  'd365-financials-reference.json': 'entity.schema.json',
+  'd365-supply-chain-reference.json': 'entity.schema.json',
+  'entity-schema-financials-conformance.json': 'test-plan.schema.json',
+  'workflow-schema-supply-chain-conformance.json': 'workflow.schema.json',
 };
 if (fs.existsSync(GEN_DIR)) {
   for (const f of fs.readdirSync(GEN_DIR).filter((f) => f.endsWith('.json'))) {
