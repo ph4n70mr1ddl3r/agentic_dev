@@ -72,7 +72,10 @@ if (fs.existsSync(GEN_DIR)) {
       continue;
     }
     const schemaFile = NON_KIND[f];
-    if (!schemaFile) continue; // untracked artifact — not gate-covered yet
+    if (!schemaFile) {
+      console.warn(`UNTRACKED     modules/generated/${f} — not validated by CI gate`);
+      continue;
+    }
     check(`modules/generated/${f}`, schemaFile, data);
   }
 }
