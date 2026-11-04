@@ -270,8 +270,7 @@ pub async fn run_phase(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::plan::{CompanyPlan, FirstPhase, Phase, Task, Hat, Organization};
-    use crate::llm::Llm;
+    use crate::plan::{CompanyPlan, FirstPhase, Hat, Organization, Phase, Task};
     use crate::state::State;
 
     fn task(id: &str, role: &str, deps: &[&str]) -> Task {
@@ -285,24 +284,19 @@ mod tests {
         }
     }
 
-    fn valid_plan_with_hats() -> CompanyPlan {
+    fn valid_plan_for_hat_test() -> CompanyPlan {
         CompanyPlan {
             mission: "test mission".into(),
             organization: Organization {
                 hats: vec![
-                    Hat {
-                        name: "Solution Architect".into(),
-                        role: "solution architect".into(),
-                        responsibilities: vec!["x".into()],
-                    },
                     Hat {
                         name: "Tech Lead".into(),
                         role: "tech lead".into(),
                         responsibilities: vec!["x".into()],
                     },
                     Hat {
-                        name: "Nonexistent Role".into(),
-                        role: "nonexistent_role".into(),
+                        name: "no hat role".into(),
+                        role: "no hat role".into(),
                         responsibilities: vec!["x".into()],
                     },
                 ],
@@ -320,22 +314,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn skipped_dependency_blocks_dependent_task() {
-        let mut plan = valid_plan_with_hats();
-        plan.first_phase.tasks = vec![
-            task("T1", "solution architect", &[]),
-            task("T2", "tech lead", &["T1"]),
-        ];
-        // Remove T2's hat so it has no hat
-        // (The orchestrator will skip T2 with "no hat for role" reason)
-        // But T2 depends on T1 which HAS a hat, so T1 should run.
-        // After T1 is done, T2 should then be skipped due to no hat.
-        // This test verifies the basic flow works.
-        // We just check plan validation passes first.
-        plan.validate().unwrap();
-    }
-
     #[tokio::test]
     async fn dependent_task_skipped_when_dep_was_previously_skipped() {
         // Simulate the scenario: task T2 depends on T1.
@@ -344,9 +322,9 @@ mod tests {
         // status wasn't recognized as a blocking dependency.
         // With the fix, T2 should be skipped as "blocked by un-runnable deps".
 
-        let mut plan = valid_plan_with_hats();
+        let mut plan = valid_plan_for_hat_test();
         plan.first_phase.tasks = vec![
-            task("T1", "nonexistent_role", &[]), // no hat → will be skipped
+            task("T1", "no hat role", &[]), // no hat defined → will be skipped
             task("T2", "tech lead", &["T1"]),
         ];
         plan.validate().unwrap();
@@ -354,7 +332,8 @@ mod tests {
         let ctx = HatContext {
             llm: &crate::llm::Llm::test(),
             registry: &crate::schema::SchemaRegistry::load_dir(
-                std::path::Path::new("platform-spec/schemas"),
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../erp/platform-spec/schemas"),
             )
             .unwrap(),
             examples_dir: std::path::PathBuf::from(""),
@@ -369,7 +348,7 @@ mod tests {
         };
         let report = run_phase(&plan, &ctx, &opts).await.unwrap();
 
-        // T1 should be skipped (no hat for "nonexistent_role")
+        // T1 should be skipped (no hat for "no hat role")
         let t1_skipped = report.skipped.iter().any(|(id, _)| id == "T1");
         // T2 should be skipped because its dep T1 was skipped ("blocked by un-runnable deps")
         let t2_skipped = report.skipped.iter().any(|(id, _)| id == "T2");
@@ -380,10 +359,12 @@ mod tests {
             .map(|(_, reason)| reason)
             .unwrap();
 
-        // Before the fix, T2 would NOT be skipped (or would have different reason)
         // After the fix, T2 should be skipped as blocked by its skipped dep T1
         assert!(t1_skipped, "T1 should be skipped (no hat)");
-        assert!(t2_skipped, "T2 should be skipped (blocked by skipped dep T1)");
+        assert!(
+            t2_skipped,
+            "T2 should be skipped (blocked by skipped dep T1)"
+        );
         assert!(
             t2_reason.contains("blocked by un-runnable deps"),
             "T2 reason should mention blocked by un-runnable deps, got: {}",
