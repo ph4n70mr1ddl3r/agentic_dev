@@ -90,6 +90,14 @@ impl State {
         Ok(())
     }
 
+    fn read_attempts(&self, phase: usize, task_id: &str) -> u32 {
+        let mut stmt = self.conn.prepare(
+            "SELECT attempts FROM task_state WHERE phase_id = ?1 AND task_id = ?2",
+        ).unwrap();
+        let row = stmt.query_row(params![phase as i64, task_id], |r| r.get::<_, i64>(0)).unwrap_or(0);
+        row.max(0) as u32
+    }
+
     pub fn mark_done(
         &self,
         phase: usize,
@@ -98,6 +106,7 @@ impl State {
         artifact: &str,
         path: &str,
     ) -> Result<()> {
+        let attempts = self.read_attempts(phase, task_id) + 1;
         self.upsert(
             phase,
             task_id,
@@ -107,22 +116,25 @@ impl State {
                 artifact: Some(artifact.into()),
                 artifact_path: Some(path.into()),
                 detail: None,
-                attempts: 0,
+                attempts,
                 updated_at: Self::now(),
             },
         )
     }
 
     pub fn mark_failed(&self, phase: usize, task_id: &str, role: &str, detail: &str) -> Result<()> {
+        let attempts = self.read_attempts(phase, task_id) + 1;
         self.upsert(
             phase,
             task_id,
             &TaskState {
                 status: "failed".into(),
                 role: role.into(),
+                artifact: None,
+                artifact_path: None,
                 detail: Some(detail.into()),
+                attempts,
                 updated_at: Self::now(),
-                ..Default::default()
             },
         )
     }
@@ -134,15 +146,18 @@ impl State {
         role: &str,
         reason: &str,
     ) -> Result<()> {
+        let attempts = self.read_attempts(phase, task_id) + 1;
         self.upsert(
             phase,
             task_id,
             &TaskState {
                 status: "skipped".into(),
                 role: role.into(),
+                artifact: None,
+                artifact_path: None,
                 detail: Some(reason.into()),
+                attempts,
                 updated_at: Self::now(),
-                ..Default::default()
             },
         )
     }
@@ -313,5 +328,23 @@ mod tests {
         s.reset_phase(1).unwrap();
         assert!(s.done_set(1).unwrap().is_empty());
         assert_eq!(s.done_set(2).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn attempts_counter_increments() {
+        let s = State::open_memory().unwrap();
+        assert_eq!(s.read_attempts(1, "T1"), 0);
+        s.mark_failed(1, "T1", "QA Engineer", "first failure").unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        assert_eq!(t1.1.attempts, 1);
+        s.mark_failed(1, "T1", "QA Engineer", "second failure").unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        assert_eq!(t1.1.attempts, 2);
+        s.mark_done(1, "T2", "Solution Architect", "company", "company.json").unwrap();
+        let list = s.list(1).unwrap();
+        let t2 = list.iter().find(|(id, _)| id == "T2").unwrap();
+        assert_eq!(t2.1.attempts, 1);
     }
 }
