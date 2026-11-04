@@ -347,4 +347,29 @@ mod tests {
         let t2 = list.iter().find(|(id, _)| id == "T2").unwrap();
         assert_eq!(t2.1.attempts, 1);
     }
+
+    #[test]
+    fn read_attempts_returns_zero_for_unknown_task() {
+        let s = State::open_memory().unwrap();
+        assert_eq!(s.read_attempts(1, "nonexistent"), 0);
+    }
+
+    #[test]
+    fn read_attempts_increments_after_mark_failed() {
+        let s = State::open_memory().unwrap();
+        assert_eq!(s.read_attempts(1, "T1"), 0);
+        s.mark_failed(1, "T1", "QA Engineer", "boom").unwrap();
+        assert_eq!(s.read_attempts(1, "T1"), 1);
+        s.mark_failed(1, "T1", "QA Engineer", "another issue").unwrap();
+        assert_eq!(s.read_attempts(1, "T1"), 2);
+    }
+
+    #[test]
+    fn read_attempts_after_mark_done_and_mark_failed_again() {
+        let s = State::open_memory().unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        assert_eq!(s.read_attempts(1, "T1"), 1);
+        s.mark_failed(1, "T1", "QA Engineer", "new failure").unwrap();
+        assert_eq!(s.read_attempts(1, "T1"), 2);
+    }
 }
