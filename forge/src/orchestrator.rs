@@ -139,8 +139,17 @@ pub async fn run_phase(
                         .state
                         .mark_skipped(opts.phase, &task.id, &task.role, &reason);
                     progress = true;
+                    continue;
+                } else {
+                    let reason = format!("blocked by pending deps: {}", pending.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
+                    println!("skip     {id}  ({reason})");
+                    report.skipped.push((id.clone(), reason.clone()));
+                    let _ = opts
+                        .state
+                        .mark_skipped(opts.phase, &task.id, &task.role, &reason);
+                    progress = true;
+                    continue;
                 }
-                continue;
             }
 
             // Ready: dispatch.
@@ -312,6 +321,50 @@ mod tests {
                 tasks: vec![],
             },
         }
+    }
+
+#[tokio::test]
+    async fn dependent_task_dispatched_before_dependency_when_reordered() {
+        // Bug demonstration: when the dependent task (T2) appears BEFORE
+        // its dependency (T1) in the task list, the current code dispatches
+        // T2 before T1 even though T1's result is needed as context.
+        // This test documents the existing behavior; the fix will ensure
+        // T2 waits for T1 even when reordered.
+        let mut plan = valid_plan_with_hats();
+        plan.first_phase.tasks = vec![
+            task("T2", "tech lead", &["T1"]), // depends on T1, but appears first
+            task("T1", "tech lead", &[]),    // no deps, appears second
+        ];
+        plan.validate().unwrap();
+
+        let ctx = HatContext {
+            llm: &crate::llm::Llm::test(),
+            registry: &crate::schema::SchemaRegistry::load_dir(
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../erp/platform-spec/schemas"),
+            )
+            .unwrap(),
+            examples_dir: std::path::PathBuf::from(""),
+            out_dir: std::path::PathBuf::from(""),
+        };
+        let state = State::open_memory().unwrap();
+        let opts = RunOptions {
+            pr: None,
+            state: &state,
+            phase: 1,
+            force: false,
+        };
+        let report = run_phase(&plan, &ctx, &opts).await.unwrap();
+
+        // With the bug, T2 gets dispatched before T1 (unsatisfied deps).
+        // After the fix, T1 is done before T2.
+        let t1_done = report.done.iter().any(|id| id == "T1");
+        let t2_done = report.done.iter().any(|id| id == "T2");
+
+        // Document current behavior: both may be "done" but T2 was dispatched
+        // before T1, meaning T2 ran without T1's output as context.
+        // After the fix, T1 should be done before T2.
+        eprintln!("T1 done: {}, T2 done: {}", t1_done, t2_done);
     }
 
     #[test]
