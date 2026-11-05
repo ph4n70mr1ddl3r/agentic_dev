@@ -141,11 +141,13 @@ pub async fn run_phase(
                     progress = true;
                     continue;
                 } else {
+                    let reason = format!("blocked by pending deps: {}", pending.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
+                    println!("skip     {id}  ({reason})");
+                    report.skipped.push((id.clone(), reason.clone()));
+                    let _ = opts
+                        .state
+                        .mark_skipped(opts.phase, &task.id, &task.role, &reason);
                     progress = true;
-                    println!(
-                        "skip     {id}  (blocked by pending deps: {})",
-                        pending.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
-                    );
                     continue;
                 }
             }
@@ -355,14 +357,18 @@ mod tests {
         let report = run_phase(&plan, &ctx, &opts).await.unwrap();
 
         // With the bug, T2 gets dispatched before T1 (unsatisfied deps).
-        // After the fix, T1 is done before T2.
+        // After the fix, T1 should be done before T2, and T2 should be
+        // properly tracked in the report as blocked by pending deps.
         let t1_done = report.done.iter().any(|id| id == "T1");
         let t2_done = report.done.iter().any(|id| id == "T2");
 
-        // Document current behavior: both may be "done" but T2 was dispatched
-        // before T1, meaning T2 ran without T1's output as context.
-        // After the fix, T1 should be done before T2.
+        // T1 may fail (e.g. due to environment), but T2 should be properly
+        // tracked as skipped/blocked due to its pending dependency on T1.
         eprintln!("T1 done: {}, T2 done: {}", t1_done, t2_done);
+        assert!(
+            report.skipped.iter().any(|(id, _)| id == "T2"),
+            "T2 should be tracked as skipped (blocked by pending dep T1)"
+        );
     }
 
     #[test]
