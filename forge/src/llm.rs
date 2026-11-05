@@ -104,8 +104,6 @@ impl Llm {
     }
 
     /// Send a system + user message and return the assistant's content as JSON
-
-    /// Send a system + user message and return the assistant's content as JSON
     /// text.
     ///
     /// Robustness for a weak model in JSON mode:

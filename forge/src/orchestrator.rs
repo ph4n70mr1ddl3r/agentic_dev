@@ -19,7 +19,7 @@ use crate::issues::slugify;
 use crate::plan::CompanyPlan;
 use crate::state::State;
 
-/// Write a validated artifact as `<id>.json` under `out_dir`; returns its path.
+// unused import: `crate::llm::Llm` removed - not needed in this module
 pub fn write_artifact(out_dir: &Path, value: &Value) -> Result<PathBuf> {
     std::fs::create_dir_all(out_dir).with_context(|| format!("create {}", out_dir.display()))?;
     let id = value
@@ -271,7 +271,6 @@ pub async fn run_phase(
 mod tests {
     use super::*;
     use crate::plan::{CompanyPlan, FirstPhase, Phase, Task, Hat, Organization};
-    use crate::llm::Llm;
     use crate::state::State;
 
     fn task(id: &str, role: &str, deps: &[&str]) -> Task {
