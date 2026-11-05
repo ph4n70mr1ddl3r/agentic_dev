@@ -141,6 +141,7 @@ pub async fn run_phase(
                     progress = true;
                     continue;
                 } else {
+                    progress = true;
                     let _ = println!(
                         "skip     {id}  (blocked by pending deps: {})",
                         pending.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
@@ -485,5 +486,36 @@ mod tests {
             "T2 reason should mention blocked by un-runnable deps, got: {}",
             t2_reason
         );
+    }
+
+#[tokio::test]
+    async fn pending_dep_task_mark_progress() {
+        let mut plan = valid_plan_with_hats();
+        plan.first_phase.tasks = vec![
+            task("T1", "tech lead", &["T2"]),
+            task("T2", "tech lead", &[]),
+        ];
+        plan.validate().unwrap();
+
+        let ctx = HatContext {
+            llm: &crate::llm::Llm::test(),
+            registry: &crate::schema::SchemaRegistry::load_dir(
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../erp/platform-spec/schemas"),
+            )
+            .unwrap(),
+            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+                "../erp/platform-spec/examples",
+            ),
+            out_dir: std::path::PathBuf::from(""),
+        };
+        let state = State::open_memory().unwrap();
+        let opts = RunOptions {
+            pr: None,
+            state: &state,
+            phase: 1,
+            force: true,
+        };
+        let _report = run_phase(&plan, &ctx, &opts).await;
     }
 }
