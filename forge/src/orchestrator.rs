@@ -141,13 +141,10 @@ pub async fn run_phase(
                     progress = true;
                     continue;
                 } else {
-                    let reason = format!("blocked by pending deps: {}", pending.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
-                    println!("skip     {id}  ({reason})");
-                    report.skipped.push((id.clone(), reason.clone()));
-                    let _ = opts
-                        .state
-                        .mark_skipped(opts.phase, &task.id, &task.role, &reason);
-                    progress = true;
+                    let _ = println!(
+                        "skip     {id}  (blocked by pending deps: {})",
+                        pending.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+                    );
                     continue;
                 }
             }
