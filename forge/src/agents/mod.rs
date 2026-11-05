@@ -187,4 +187,34 @@ mod tests {
         let result = extract_json(raw);
         assert_eq!(result, "");
     }
+
+    #[test]
+    fn has_hat_solution_architect() {
+        assert!(has_hat("Solution Architect"));
+        assert!(has_hat("architect"));
+    }
+
+    #[test]
+    fn has_hat_tech_lead() {
+        assert!(has_hat("tech lead"));
+        assert!(has_hat("tech-lead"));
+    }
+
+    #[test]
+    fn has_hat_qa_engineer() {
+        assert!(has_hat("QA Engineer"));
+        assert!(has_hat("qa"));
+    }
+
+    #[test]
+    fn has_hat_domain_modeler() {
+        assert!(has_hat("domain modeler financials"));
+        assert!(has_hat("domain modeler supply chain"));
+    }
+
+    #[test]
+    fn has_hat_no_role() {
+        assert!(!has_hat("not a real role"));
+        assert!(!has_hat(""));
+    }
 }

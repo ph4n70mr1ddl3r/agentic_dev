@@ -142,7 +142,7 @@ pub async fn run_phase(
                     continue;
                 } else {
                     progress = true;
-                    let _ = println!(
+                    println!(
                         "skip     {id}  (blocked by pending deps: {})",
                         pending.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
                     );
