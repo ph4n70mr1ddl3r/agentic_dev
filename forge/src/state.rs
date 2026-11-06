@@ -106,10 +106,10 @@ impl State {
         artifact: &str,
         path: &str,
     ) -> Result<()> {
-        let attempts = if self.read_status(phase, task_id) == Some("done".into()) {
-            self.read_attempts(phase, task_id)
-        } else {
-            self.read_attempts(phase, task_id) + 1
+        let attempts = match self.read_status(phase, task_id).as_deref() {
+            Some("done") => self.read_attempts(phase, task_id),
+            None => self.read_attempts(phase, task_id) + 1,
+            _ => self.read_attempts(phase, task_id),
         };
         self.upsert(
             phase,
@@ -408,10 +408,10 @@ mod tests {
         s.mark_done(1, "T1", "Solution Architect", "company", "company.json").unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
-        // After mark_done following mark_failed, attempts should reflect the transition.
-        // Current behavior: attempts = read_attempts + 1 = 1 + 1 = 2
+        // After mark_done following mark_failed, attempts should NOT be incremented
+        // since the failure was already counted as an attempt.
         assert_eq!(t1.1.status, "done");
-        assert_eq!(t1.1.attempts, 2, "attempts should be 2 after mark_done following mark_failed");
+        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 after mark_done following mark_failed");
     }
 
     #[test]
@@ -435,7 +435,23 @@ mod tests {
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
         assert_eq!(t1.1.status, "done");
         // When marking done after skipped, read_status returns Some("skipped")
-        // which != Some("done"), so attempts = read_attempts + 1 = 1 + 1 = 2
-        assert_eq!(t1.1.attempts, 2, "attempts should be 2 after mark_done following mark_skipped");
+        // which matches the `_` arm, so attempts = read_attempts = 1 (not incremented)
+        // Previous behavior: attempts = read_attempts + 1 = 1 + 1 = 2
+        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 after mark_done following mark_skipped");
+    }
+
+    #[test]
+    fn mark_done_after_failed_transition_attempts_not_incremented() {
+        let s = State::open_memory().unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "first failure").unwrap();
+        s.mark_done(1, "T1", "Solution Architect", "company", "company.json").unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        assert_eq!(t1.1.status, "done");
+        // After mark_done following mark_failed, attempts should NOT be incremented
+        // since the failure was already counted as an attempt.
+        // Previous behavior: attempts = read_attempts + 1 = 1 + 1 = 2
+        // Fixed behavior: attempts = read_attempts = 1
+        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 after mark_done following mark_failed");
     }
 }
