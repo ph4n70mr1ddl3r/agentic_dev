@@ -16,8 +16,18 @@ use crate::schema::SchemaRegistry;
 /// Tolerate models that wrap JSON in markdown code fences despite JSON mode.
 pub fn extract_json(raw: &str) -> &str {
     let trimmed = raw.trim();
+    // Primary: strip ``` from the start (handles ```json, ```javascript, etc.)
     if let Some(rest) = trimmed.strip_prefix("```") {
         let after = rest.find('\n').map(|i| &rest[i + 1..]).unwrap_or(rest);
+        if let Some(end) = after.rfind("```") {
+            return after[..end].trim();
+        }
+        return after.trim();
+    }
+    // Fallback: search for ``` anywhere in the trimmed string
+    // this handles cases where LLM output has leading text before the fences
+    if let Some(pos) = trimmed.find("```") {
+        let after = &trimmed[pos + 3..];
         if let Some(end) = after.rfind("```") {
             return after[..end].trim();
         }
@@ -179,6 +189,13 @@ mod tests {
         let raw = "";
         let result = extract_json(raw);
         assert_eq!(result, "");
+    }
+
+    #[test]
+    fn extract_json_leading_text_before_fences() {
+        let raw = "Here is the JSON: ```\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        assert_eq!(result, "{\"id\": \"T1\"}");
     }
 
     #[test]
