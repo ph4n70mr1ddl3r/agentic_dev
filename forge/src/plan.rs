@@ -73,6 +73,7 @@ impl CompanyPlan {
             } else if !hat_names.insert(h.name.trim().to_ascii_lowercase()) {
                 errs.push(format!("duplicate hat name: {}", h.name));
             }
+            hat_names.insert(h.role.trim().to_ascii_lowercase());
         }
 
         if self.roadmap.is_empty() {
@@ -228,5 +229,120 @@ mod tests {
         let mut p = valid_plan();
         p.first_phase.name = "Phase Uno".into();
         assert!(p.validate().is_err());
+    }
+
+    #[test]
+    fn task_role_matching_hat_name_passes() {
+        let p = CompanyPlan {
+            mission: "Company building software".into(),
+            organization: Organization {
+                hats: vec![Hat {
+                    name: "Solution Architect".into(),
+                    role: "architect".into(),
+                    responsibilities: vec!["Entity authoring".into()],
+                }],
+            },
+            roadmap: vec![Phase {
+                name: "P0".into(),
+                goal: "Build entities".into(),
+                exit_criteria: vec!["Entities created".into()],
+            }],
+            contribution_model: "GitHub PR flow".into(),
+            first_phase: FirstPhase {
+                name: "P0".into(),
+                tasks: vec![
+                    Task {
+                        id: "T1".into(),
+                        title: "Create Company".into(),
+                        role: "solution architect".into(),
+                        task_type: "DEV".into(),
+                        description: "Create the company entity".into(),
+                        depends_on: vec![],
+                    },
+                    Task {
+                        id: "T2".into(),
+                        title: "Create another entity".into(),
+                        role: "solution architect".into(),
+                        task_type: "DEV".into(),
+                        description: "Create another entity".into(),
+                        depends_on: vec!["T1".into()],
+                    },
+                ],
+            },
+        };
+        assert!(
+            p.validate().is_ok(),
+            "task role 'solution architect' should pass when hat name is 'Solution Architect'"
+        );
+    }
+
+    #[test]
+    fn task_role_matching_hat_role_passes() {
+        let p = CompanyPlan {
+            mission: "Company building software".into(),
+            organization: Organization {
+                hats: vec![Hat {
+                    name: "Solution Architect".into(),
+                    role: "architect".into(),
+                    responsibilities: vec!["Entity authoring".into()],
+                }],
+            },
+            roadmap: vec![Phase {
+                name: "P0".into(),
+                goal: "Build entities".into(),
+                exit_criteria: vec!["Entities created".into()],
+            }],
+            contribution_model: "GitHub PR flow".into(),
+            first_phase: FirstPhase {
+                name: "P0".into(),
+                tasks: vec![Task {
+                    id: "T1".into(),
+                    title: "Create Company".into(),
+                    role: "architect".into(),
+                    task_type: "DEV".into(),
+                    description: "Create the company entity".into(),
+                    depends_on: vec![],
+                }],
+            },
+        };
+        assert!(
+            p.validate().is_ok(),
+            "task role 'architect' should pass when hat role is 'architect'"
+        );
+    }
+
+    #[test]
+    fn task_role_not_hat_fails_even_with_similar_name() {
+        let p = CompanyPlan {
+            mission: "Company building software".into(),
+            organization: Organization {
+                hats: vec![Hat {
+                    name: "Solution Architect".into(),
+                    role: "architect".into(),
+                    responsibilities: vec!["Entity authoring".into()],
+                }],
+            },
+            roadmap: vec![Phase {
+                name: "P0".into(),
+                goal: "Build entities".into(),
+                exit_criteria: vec!["Entities created".into()],
+            }],
+            contribution_model: "GitHub PR flow".into(),
+            first_phase: FirstPhase {
+                name: "P0".into(),
+                tasks: vec![Task {
+                    id: "T1".into(),
+                    title: "Create Company".into(),
+                    role: "nobody".into(),
+                    task_type: "DEV".into(),
+                    description: "Create the company entity".into(),
+                    depends_on: vec![],
+                }],
+            },
+        };
+        assert!(
+            p.validate().is_err(),
+            "task role 'nobody' should fail validation"
+        );
     }
 }
