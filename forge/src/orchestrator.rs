@@ -67,7 +67,7 @@ pub async fn run_phase(
         let a_no_deps = tasks[i].depends_on.is_empty();
         let b_no_deps = tasks[j].depends_on.is_empty();
         if a_no_deps != b_no_deps {
-            return a_no_deps.cmp(&b_no_deps);
+            return b_no_deps.cmp(&a_no_deps);
         }
         let a_dep_count = tasks[i].depends_on.len();
         let b_dep_count = tasks[j].depends_on.len();
@@ -346,11 +346,11 @@ mod tests {
 
 #[tokio::test]
     async fn dependent_task_dispatched_before_dependency_when_reordered() {
-        // Bug demonstration: when the dependent task (T2) appears BEFORE
-        // its dependency (T1) in the task list, the current code dispatches
-        // T2 before T1 even though T1's result is needed as context.
-        // This test documents the existing behavior; the fix will ensure
-        // T2 waits for T1 even when reordered.
+        // Demonstration that when the dependent task (T2) appears BEFORE
+        // its dependency (T1) in the task list, the orchestrator now sorts
+        // tasks into dependency order so T1 runs first. After the fix, T1
+        // is processed before T2, and T2 is not blocked by pending deps
+        // on T1 (even if T1 ultimately fails for other reasons).
         let mut plan = valid_plan_with_hats();
         plan.first_phase.tasks = vec![
             task("T2", "tech lead", &["T1"]), // depends on T1, but appears first
@@ -377,18 +377,25 @@ mod tests {
         };
         let report = run_phase(&plan, &ctx, &opts).await.unwrap();
 
-        // With the bug, T2 gets dispatched before T1 (unsatisfied deps).
-        // After the fix, T1 should be done before T2, and T2 should be
-        // properly tracked in the report as blocked by pending deps.
-        let t1_done = report.done.iter().any(|id| id == "T1");
-        let t2_done = report.done.iter().any(|id| id == "T2");
+        // After the fix, the sort ensures T1 (no deps) is processed before T2 (has deps).
+        // T2 should not be skipped due to a pending dependency on T1.
+        let t2_skipped_by_pending = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T2" && reason.contains("pending dep"));
 
-        // T1 may fail (e.g. due to environment), but T2 should be properly
-        // tracked as skipped/blocked due to its pending dependency on T1.
-        eprintln!("T1 done: {}, T2 done: {}", t1_done, t2_done);
+        // T1 may succeed or fail depending on thehat implementation, but the
+        // key fix is that the sort order is correct: T1 runs before T2.
+        // T2 should not be tracked as skipped because its dep on T1 is pending.
         assert!(
-            report.skipped.iter().any(|(id, _)| id == "T2"),
-            "T2 should be tracked as skipped (blocked by pending dep T1)"
+            !t2_skipped_by_pending,
+            "T2 should not be skipped due to pending dep on T1 after the fix; \
+             actual reason: {:?}",
+            report
+                .skipped
+                .iter()
+                .find(|(id, _)| id == "T2")
+                .map(|(_, reason)| reason)
         );
     }
 
