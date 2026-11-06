@@ -395,4 +395,34 @@ mod tests {
         assert_eq!(t1.1.attempts, 1, "attempts should remain 1 for already-done task");
         assert_eq!(t1.1.status, "done");
     }
+
+    #[test]
+    fn mark_done_increments_after_mark_failed() {
+        let s = State::open_memory().unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "first failure").unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        assert_eq!(t1.1.status, "failed");
+        assert_eq!(t1.1.attempts, 1, "first failure should be attempt 1");
+
+        s.mark_done(1, "T1", "Solution Architect", "company", "company.json").unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        // After mark_done following mark_failed, attempts should reflect the transition.
+        // Current behavior: attempts = read_attempts + 1 = 1 + 1 = 2
+        assert_eq!(t1.1.status, "done");
+        assert_eq!(t1.1.attempts, 2, "attempts should be 2 after mark_done following mark_failed");
+    }
+
+    #[test]
+    fn mark_done_does_not_increment_attempts_for_already_done_task_twice() {
+        let s = State::open_memory().unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 for repeatedly-done task");
+        assert_eq!(t1.1.status, "done");
+    }
 }
