@@ -425,4 +425,17 @@ mod tests {
         assert_eq!(t1.1.attempts, 1, "attempts should remain 1 for repeatedly-done task");
         assert_eq!(t1.1.status, "done");
     }
+
+    #[test]
+    fn mark_done_after_skipped_transition() {
+        let s = State::open_memory().unwrap();
+        s.mark_skipped(1, "T1", "QA Engineer", "review needed").unwrap();
+        s.mark_done(1, "T1", "Solution Architect", "company", "company.json").unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        assert_eq!(t1.1.status, "done");
+        // When marking done after skipped, read_status returns Some("skipped")
+        // which != Some("done"), so attempts = read_attempts + 1 = 1 + 1 = 2
+        assert_eq!(t1.1.attempts, 2, "attempts should be 2 after mark_done following mark_skipped");
+    }
 }
