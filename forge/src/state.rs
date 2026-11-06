@@ -106,7 +106,11 @@ impl State {
         artifact: &str,
         path: &str,
     ) -> Result<()> {
-        let attempts = self.read_attempts(phase, task_id) + 1;
+        let attempts = if self.read_status(phase, task_id) == Some("done".into()) {
+            self.read_attempts(phase, task_id)
+        } else {
+            self.read_attempts(phase, task_id) + 1
+        };
         self.upsert(
             phase,
             task_id,
@@ -160,6 +164,13 @@ impl State {
                 updated_at: Self::now(),
             },
         )
+    }
+
+    fn read_status(&self, phase: usize, task_id: &str) -> Option<String> {
+        let mut stmt = self.conn.prepare(
+            "SELECT status FROM task_state WHERE phase_id = ?1 AND task_id = ?2",
+        ).unwrap();
+        stmt.query_row(params![phase as i64, task_id], |r| r.get::<_, Option<String>>(0)).ok().flatten()
     }
 
     /// Task ids recorded as `done` for this phase — seeds the orchestrator's
@@ -371,5 +382,17 @@ mod tests {
         assert_eq!(s.read_attempts(1, "T1"), 1);
         s.mark_failed(1, "T1", "QA Engineer", "new failure").unwrap();
         assert_eq!(s.read_attempts(1, "T1"), 2);
+    }
+
+    #[test]
+    fn mark_done_does_not_increment_attempts_for_already_done_task() {
+        let s = State::open_memory().unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        // Calling mark_done again on an already-done task should not increment attempts
+        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 for already-done task");
+        assert_eq!(t1.1.status, "done");
     }
 }
