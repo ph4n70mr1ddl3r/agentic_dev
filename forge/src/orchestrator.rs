@@ -61,7 +61,9 @@ pub async fn run_phase(
     // Sort tasks into dependency order so that tasks with no dependencies are
     // processed before tasks that depend on others, regardless of how the CEO
     // presents the task list (i.e. reordered tasks). Uses an index-based sort
-    // to avoid requiring Clone on Task.
+    // to avoid requiring Clone on Task. This sort gives priority to tasks with
+    // fewer dependencies, and when two tasks have the same number of dependencies,
+    // ensures that if one depends on the other, the dependency comes first.
     let mut indices: Vec<usize> = (0..tasks.len()).collect();
     indices.sort_by(|&i, &j| {
         let a_no_deps = tasks[i].depends_on.is_empty();
@@ -73,6 +75,22 @@ pub async fn run_phase(
         let b_dep_count = tasks[j].depends_on.len();
         if a_dep_count != b_dep_count {
             return a_dep_count.cmp(&b_dep_count);
+        }
+        // If task i depends on task j, j should come before i.
+        // If task j depends on task i, i should come before j.
+        let i_depends_on_j = tasks[i]
+            .depends_on
+            .iter()
+            .any(|d| d.trim() == tasks[j].id.trim());
+        let j_depends_on_i = tasks[j]
+            .depends_on
+            .iter()
+            .any(|d| d.trim() == tasks[i].id.trim());
+        if i_depends_on_j {
+            return std::cmp::Ordering::Greater;
+        }
+        if j_depends_on_i {
+            return std::cmp::Ordering::Less;
         }
         tasks[i].id.cmp(&tasks[j].id)
     });
@@ -551,5 +569,71 @@ mod tests {
             force: true,
         };
         let _report = run_phase(&plan, &ctx, &opts).await;
+    }
+
+    #[tokio::test]
+    async fn transitive_dependency_sort_order() {
+        // Verify that tasks with transitive dependencies are sorted correctly:
+        // T3 (no deps) -> T2 (depends on T3) -> T1 (depends on T2)
+        let mut plan = valid_plan_with_hats();
+        plan.organization.hats.push(Hat {
+            name: "no hat role".into(),
+            role: "no hat role".into(),
+            responsibilities: vec!["x".into()],
+        });
+        plan.first_phase.tasks = vec![
+            task("T1", "tech lead", &["T2"]),
+            task("T2", "tech lead", &["T3"]),
+            task("T3", "tech lead", &[]),
+        ];
+        plan.validate().unwrap();
+
+        let ctx = HatContext {
+            llm: &crate::llm::Llm::test(),
+            registry: &crate::schema::SchemaRegistry::load_dir(
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../erp/platform-spec/schemas"),
+            )
+            .unwrap(),
+            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+                "../erp/platform-spec/examples",
+            ),
+            out_dir: std::path::PathBuf::from(""),
+        };
+        let state = State::open_memory().unwrap();
+        let opts = RunOptions {
+            pr: None,
+            state: &state,
+            phase: 1,
+            force: false,
+        };
+        let report = run_phase(&plan, &ctx, &opts).await.unwrap();
+
+        // T3 should run first (no deps), T2 should run second (dep on T3), T1 should run third (dep on T2)
+        // If T1 is skipped before T2 runs, that's a sort order bug.
+        let t1_skipped_by_pending = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("pending dep"));
+        let _t1_skipped_by_unrunnable = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("un-runnable deps"));
+
+        // With the fix, T1 should not be skipped due to a pending dependency on T2,
+        // because the sort ensures T2 (and thereby T3) runs before T1.
+        // T1 may still be skipped if T2 fails (un-runnable deps), but that's expected.
+        assert!(
+            !t1_skipped_by_pending,
+            "T1 should not be skipped due to pending dep on T2 after the fix; \
+             actual reason: {:?}",
+            report
+                .skipped
+                .iter()
+                .find(|(id, _)| id == "T1")
+                .map(|(_, reason)| reason)
+        );
+        // T1 may be skipped with "un-runnable deps" if T2 fails, which is expected
+        // behavior when a dependency fails.
     }
 }
