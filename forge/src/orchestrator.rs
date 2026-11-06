@@ -58,6 +58,25 @@ pub async fn run_phase(
     let tasks = &plan.first_phase.tasks;
     let mut report = RunReport::default();
 
+    // Sort tasks into dependency order so that tasks with no dependencies are
+    // processed before tasks that depend on others, regardless of how the CEO
+    // presents the task list (i.e. reordered tasks). Uses an index-based sort
+    // to avoid requiring Clone on Task.
+    let mut indices: Vec<usize> = (0..tasks.len()).collect();
+    indices.sort_by(|&i, &j| {
+        let a_no_deps = tasks[i].depends_on.is_empty();
+        let b_no_deps = tasks[j].depends_on.is_empty();
+        if a_no_deps != b_no_deps {
+            return a_no_deps.cmp(&b_no_deps);
+        }
+        let a_dep_count = tasks[i].depends_on.len();
+        let b_dep_count = tasks[j].depends_on.len();
+        if a_dep_count != b_dep_count {
+            return a_dep_count.cmp(&b_dep_count);
+        }
+        tasks[i].id.cmp(&tasks[j].id)
+    });
+
     // Seed satisfied deps from prior runs (the resumability primitive).
     let mut done: HashSet<String> = if opts.force {
         HashSet::new()
@@ -82,7 +101,8 @@ pub async fn run_phase(
 
     loop {
         let mut progress = false;
-        for task in tasks {
+        for idx in &indices {
+            let task = &tasks[*idx];
             let id = task.id.trim().to_string();
             let settled = done.contains(&id)
                 || produced.contains(&id)
@@ -260,7 +280,8 @@ pub async fn run_phase(
     }
 
     // Anything still unsettled is waiting on deps that never resolved.
-    for task in tasks {
+    for idx in &indices {
+        let task = &tasks[*idx];
         let id = task.id.trim().to_string();
         let settled = done.contains(&id)
             || produced.contains(&id)
