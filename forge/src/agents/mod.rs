@@ -35,7 +35,12 @@ pub fn extract_json(raw: &str) -> &str {
             if let Some(idx) = extracted.find('\n') {
                 let before = &extracted[..idx];
                 let after = &extracted[idx + 1..];
-                if before.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+                // Strip the language tag if it is a valid identifier
+                // (alphanumeric, dash, or underscore characters), or if it has
+                // special characters we still attempt to extract the content after it.
+                if before.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+                    || !before.is_empty()
+                {
                     return after.trim();
                 }
             }
@@ -252,3 +257,27 @@ mod tests {
         assert!(!has_hat(""));
     }
 }
+
+    #[test]
+    fn extract_json_language_tag_with_special_chars() {
+        // Language tag with "!" should still be stripped
+        let raw = "Here is the JSON: ```python!\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        assert_eq!(result, "{\"id\": \"T1\"}", "language tag with ! should be stripped");
+    }
+
+    #[test]
+    fn extract_json_language_tag_with_dash() {
+        // Language tag with dash should be stripped
+        let raw = "Here is the JSON: ```my-role\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        assert_eq!(result, "{\"id\": \"T1\"}", "language tag with - should be stripped");
+    }
+
+    #[test]
+    fn extract_json_language_tag_with_underscore() {
+        // Language tag with underscore should be stripped
+        let raw = "Here is the JSON: ```my_role\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        assert_eq!(result, "{\"id\": \"T1\"}", "language tag with _ should be stripped");
+    }
