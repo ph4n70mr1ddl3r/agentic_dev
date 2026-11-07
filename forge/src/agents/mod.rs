@@ -41,7 +41,7 @@ pub fn extract_json(raw: &str) -> &str {
                 let tag_is_valid_identifier =
                     before.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_');
                 let tag_is_non_empty = !before.is_empty();
-                if tag_is_valid_identifier || tag_is_non_empty {
+                if tag_is_valid_identifier && tag_is_non_empty {
                     return after.trim();
                 }
             }
@@ -261,10 +261,13 @@ mod tests {
 
     #[test]
     fn extract_json_language_tag_with_special_chars() {
-        // Language tag with "!" should still be stripped
+        // Language tag with "!" should NOT be stripped since it's not a valid
+        // identifier (only alphanumeric, dash, underscore are allowed).
         let raw = "Here is the JSON: ```python!\n{\"id\": \"T1\"}\n```";
         let result = extract_json(raw);
-        assert_eq!(result, "{\"id\": \"T1\"}", "language tag with ! should be stripped");
+        // Without the tag being stripped, the content between fences is returned
+        // which includes the language tag "python!" before the JSON.
+        assert_eq!(result, "python!\n{\"id\": \"T1\"}", "language tag with ! should not be stripped");
     }
 
     #[test]
