@@ -29,7 +29,17 @@ pub fn extract_json(raw: &str) -> &str {
     if let Some(pos) = trimmed.find("```") {
         let after = &trimmed[pos + 3..];
         if let Some(end) = after.rfind("```") {
-            return after[..end].trim();
+            let extracted = after[..end].trim();
+            // Strip language tag (e.g. "json\n" or "javascript\n") that may appear
+            // after the opening fence when there is leading text before the fences.
+            if let Some(idx) = extracted.find('\n') {
+                let before = &extracted[..idx];
+                let after = &extracted[idx + 1..];
+                if before.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+                    return after.trim();
+                }
+            }
+            return extracted;
         }
         return after.trim();
     }
@@ -194,6 +204,13 @@ mod tests {
     #[test]
     fn extract_json_leading_text_before_fences() {
         let raw = "Here is the JSON: ```\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        assert_eq!(result, "{\"id\": \"T1\"}");
+    }
+
+    #[test]
+    fn extract_json_leading_text_before_fences_with_language_tag() {
+        let raw = "Here is the JSON: ```json\n{\"id\": \"T1\"}\n```";
         let result = extract_json(raw);
         assert_eq!(result, "{\"id\": \"T1\"}");
     }
