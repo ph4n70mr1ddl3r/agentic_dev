@@ -285,3 +285,18 @@ mod tests {
         let result = extract_json(raw);
         assert_eq!(result, "{\"id\": \"T1\"}", "language tag with _ should be stripped");
     }
+
+    #[test]
+    fn extract_json_language_tag_with_dot() {
+        // Language tag with a dot should NOT be stripped since '.' is not
+        // alphanumeric, dash, or underscore (a valid identifier).
+        let raw = "Here is the JSON: ```py.thon\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        // The content between fences is returned including the language tag "py.thon"
+        // before the JSON, since the tag is not a valid identifier.
+        assert_eq!(
+            result,
+            "py.thon\n{\"id\": \"T1\"}",
+            "language tag with dot should not be stripped"
+        );
+    }
