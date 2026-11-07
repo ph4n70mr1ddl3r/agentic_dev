@@ -724,7 +724,7 @@ mod tests {
             .skipped
             .iter()
             .any(|(id, reason)| id == "T1" && reason.contains("pending dep"));
-        let t1_skipped_by_unrunnable = report
+        let _t1_skipped_by_unrunnable = report
             .skipped
             .iter()
             .any(|(id, reason)| id == "T1" && reason.contains("un-runnable deps"));
