@@ -38,9 +38,10 @@ pub fn extract_json(raw: &str) -> &str {
                 // Strip the language tag if it is a valid identifier
                 // (alphanumeric, dash, or underscore characters), or if it has
                 // special characters we still attempt to extract the content after it.
-                if before.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_')
-                    || !before.is_empty()
-                {
+                let tag_is_valid_identifier =
+                    before.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_');
+                let tag_is_non_empty = !before.is_empty();
+                if tag_is_valid_identifier || tag_is_non_empty {
                     return after.trim();
                 }
             }
