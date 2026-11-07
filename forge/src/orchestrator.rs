@@ -4,6 +4,11 @@
 //! is the loop that turns "run one task" into "run the company" (within a phase;
 //! cross-phase work waits on a human gate — ADR-0005).
 //!
+//! **Bug fix**: The task sort now correctly handles transitive dependencies.
+//! The comparator checks not only direct `depends_on` relationships but also
+//! transitive dependency chains, ensuring that if task i transitively depends on
+//! task j, then j is placed before i in the sorted order.
+//!
 //! State is resumable: tasks recorded as `done` in the [`State`] DB are skipped
 //! (not re-run) unless `force` is set, and each outcome is persisted.
 
@@ -38,6 +43,26 @@ pub struct RunReport {
     pub skipped: Vec<(String, String)>, // (task_id, reason)
     pub failed: Vec<(String, String)>,
     pub prs: Vec<(String, String)>, // (task_id, pr_url)
+}
+
+fn transitively_depends_on(tasks: &[crate::plan::Task], idx: usize, target_id: &str) -> bool {
+    let mut visited = HashSet::new();
+    let mut stack = vec![idx];
+    while let Some(current) = stack.pop() {
+        if visited.contains(&current) {
+            continue;
+        }
+        visited.insert(current);
+        if tasks[current].id.trim() == target_id {
+            return true;
+        }
+        for dep_id in &tasks[current].depends_on {
+            if let Some(dep_idx) = tasks.iter().position(|t| t.id.trim() == dep_id.trim()) {
+                stack.push(dep_idx);
+            }
+        }
+    }
+    false
 }
 
 pub struct RunOptions<'a> {
@@ -90,6 +115,16 @@ pub async fn run_phase(
             return std::cmp::Ordering::Greater;
         }
         if j_depends_on_i {
+            return std::cmp::Ordering::Less;
+        }
+        // Check transitive dependencies: if i transitively depends on j,
+        // j should come before i; if j transitively depends on i, i should
+        // come before j. This ensures correct ordering for chains like
+        // T1->T2->T3 where T1 doesn't directly depend on T3.
+        if transitively_depends_on(tasks, i, tasks[j].id.trim()) {
+            return std::cmp::Ordering::Greater;
+        }
+        if transitively_depends_on(tasks, j, tasks[i].id.trim()) {
             return std::cmp::Ordering::Less;
         }
         tasks[i].id.cmp(&tasks[j].id)
@@ -179,7 +214,14 @@ pub async fn run_phase(
                     progress = true;
                     continue;
                 } else {
-                    let reason = format!("blocked by pending deps: {}", pending.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "));
+                    let reason = format!(
+                        "blocked by pending deps: {}",
+                        pending
+                            .iter()
+                            .map(|s| s.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
                     println!("skip     {id}  ({reason})");
                     report.skipped.push((id.clone(), reason.clone()));
                     let _ = opts
@@ -318,7 +360,7 @@ pub async fn run_phase(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::plan::{CompanyPlan, FirstPhase, Phase, Task, Hat, Organization};
+    use crate::plan::{CompanyPlan, FirstPhase, Hat, Organization, Phase, Task};
     use crate::state::State;
 
     fn task(id: &str, role: &str, deps: &[&str]) -> Task {
@@ -362,7 +404,7 @@ mod tests {
         }
     }
 
-#[tokio::test]
+    #[tokio::test]
     async fn dependent_task_dispatched_before_dependency_when_reordered() {
         // Demonstration that when the dependent task (T2) appears BEFORE
         // its dependency (T1) in the task list, the orchestrator now sorts
@@ -372,7 +414,7 @@ mod tests {
         let mut plan = valid_plan_with_hats();
         plan.first_phase.tasks = vec![
             task("T2", "tech lead", &["T1"]), // depends on T1, but appears first
-            task("T1", "tech lead", &[]),    // no deps, appears second
+            task("T1", "tech lead", &[]),     // no deps, appears second
         ];
         plan.validate().unwrap();
 
@@ -482,7 +524,7 @@ mod tests {
         );
     }
 
-#[tokio::test]
+    #[tokio::test]
     async fn dependent_task_blocked_when_some_deps_done_and_one_skipped() {
         let mut plan = valid_plan_with_hats();
         // Add "no hat role" hat so T3's role is valid
@@ -540,7 +582,7 @@ mod tests {
         );
     }
 
-#[tokio::test]
+    #[tokio::test]
     async fn pending_dep_task_mark_progress() {
         let mut plan = valid_plan_with_hats();
         plan.first_phase.tasks = vec![
@@ -556,9 +598,8 @@ mod tests {
                     .join("../erp/platform-spec/schemas"),
             )
             .unwrap(),
-            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
-                "../erp/platform-spec/examples",
-            ),
+            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../erp/platform-spec/examples"),
             out_dir: std::path::PathBuf::from(""),
         };
         let state = State::open_memory().unwrap();
@@ -595,9 +636,8 @@ mod tests {
                     .join("../erp/platform-spec/schemas"),
             )
             .unwrap(),
-            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
-                "../erp/platform-spec/examples",
-            ),
+            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../erp/platform-spec/examples"),
             out_dir: std::path::PathBuf::from(""),
         };
         let state = State::open_memory().unwrap();
@@ -635,5 +675,75 @@ mod tests {
         );
         // T1 may be skipped with "un-runnable deps" if T2 fails, which is expected
         // behavior when a dependency fails.
+    }
+
+    #[tokio::test]
+    async fn transitive_dependency_sort_order_4tasks() {
+        // Verify that tasks with 4-task transitive dependencies are sorted correctly:
+        // T4 (no deps) -> T3 (depends on T4) -> T2 (depends on T3) -> T1 (depends on T2)
+        // Tasks are presented in reverse order (T1 first, T4 last), which previously
+        // caused the sort to fall through to alphabetical comparison, producing
+        // incorrect orderings for transitive chains.
+        let mut plan = valid_plan_with_hats();
+        plan.organization.hats.push(Hat {
+            name: "no hat role".into(),
+            role: "no hat role".into(),
+            responsibilities: vec!["x".into()],
+        });
+        plan.first_phase.tasks = vec![
+            task("T1", "tech lead", &["T2"]),
+            task("T2", "tech lead", &["T3"]),
+            task("T3", "tech lead", &["T4"]),
+            task("T4", "tech lead", &[]),
+        ];
+        plan.validate().unwrap();
+
+        let ctx = HatContext {
+            llm: &crate::llm::Llm::test(),
+            registry: &crate::schema::SchemaRegistry::load_dir(
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../erp/platform-spec/schemas"),
+            )
+            .unwrap(),
+            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../erp/platform-spec/examples"),
+            out_dir: std::path::PathBuf::from(""),
+        };
+        let state = State::open_memory().unwrap();
+        let opts = RunOptions {
+            pr: None,
+            state: &state,
+            phase: 1,
+            force: false,
+        };
+        let report = run_phase(&plan, &ctx, &opts).await.unwrap();
+
+        // T4 should run first (no deps), T3 second (dep on T4), T2 third (dep on T3),
+        // T1 fourth (dep on T2). If T1 is skipped before T4 runs, that's a sort order bug.
+        let t1_skipped_by_pending = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("pending dep"));
+        let t1_skipped_by_unrunnable = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("un-runnable deps"));
+
+        // With the fix, T1 should not be skipped due to pending dependency on T2,
+        // because the sort ensures T2 (and thereby T3, T4) runs before T1.
+        assert!(
+            !t1_skipped_by_pending,
+            "T1 should not be skipped due to pending dep on T2 after the fix; \
+             actual reason: {:?}",
+            report
+                .skipped
+                .iter()
+                .find(|(id, _)| id == "T1")
+                .map(|(_, reason)| reason)
+        );
+        // T1 should not be skipped with un-runnable deps if all deps succeed;
+        // if they are, it indicates a real execution failure, not a sort order issue.
+        // (In this test setup with mock LLM, tasks may still fail; the key assert is
+        // no "pending dep" skip.)
     }
 }
