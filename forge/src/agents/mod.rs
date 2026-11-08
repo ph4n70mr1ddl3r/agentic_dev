@@ -38,8 +38,9 @@ pub fn extract_json(raw: &str) -> &str {
                 // Strip the language tag if it is a valid identifier
                 // (alphanumeric, dash, or underscore characters), or if it has
                 // special characters we still attempt to extract the content after it.
-                let tag_is_valid_identifier =
-                    before.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_');
+                let tag_is_valid_identifier = before
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
                 let tag_is_non_empty = !before.is_empty();
                 if tag_is_valid_identifier && tag_is_non_empty {
                     return after.trim();
@@ -259,59 +260,66 @@ mod tests {
     }
 }
 
-    #[test]
-    fn extract_json_language_tag_with_special_chars() {
-        // Language tag with "!" should NOT be stripped since it's not a valid
-        // identifier (only alphanumeric, dash, underscore are allowed).
-        let raw = "Here is the JSON: ```python!\n{\"id\": \"T1\"}\n```";
-        let result = extract_json(raw);
-        // Without the tag being stripped, the content between fences is returned
-        // which includes the language tag "python!" before the JSON.
-        assert_eq!(result, "python!\n{\"id\": \"T1\"}", "language tag with ! should not be stripped");
-    }
+#[test]
+fn extract_json_language_tag_with_special_chars() {
+    // Language tag with "!" should NOT be stripped since it's not a valid
+    // identifier (only alphanumeric, dash, underscore are allowed).
+    let raw = "Here is the JSON: ```python!\n{\"id\": \"T1\"}\n```";
+    let result = extract_json(raw);
+    // Without the tag being stripped, the content between fences is returned
+    // which includes the language tag "python!" before the JSON.
+    assert_eq!(
+        result, "python!\n{\"id\": \"T1\"}",
+        "language tag with ! should not be stripped"
+    );
+}
 
-    #[test]
-    fn extract_json_language_tag_with_dash() {
-        // Language tag with dash should be stripped
-        let raw = "Here is the JSON: ```my-role\n{\"id\": \"T1\"}\n```";
-        let result = extract_json(raw);
-        assert_eq!(result, "{\"id\": \"T1\"}", "language tag with - should be stripped");
-    }
+#[test]
+fn extract_json_language_tag_with_dash() {
+    // Language tag with dash should be stripped
+    let raw = "Here is the JSON: ```my-role\n{\"id\": \"T1\"}\n```";
+    let result = extract_json(raw);
+    assert_eq!(
+        result, "{\"id\": \"T1\"}",
+        "language tag with - should be stripped"
+    );
+}
 
-    #[test]
-    fn extract_json_language_tag_with_underscore() {
-        // Language tag with underscore should be stripped
-        let raw = "Here is the JSON: ```my_role\n{\"id\": \"T1\"}\n```";
-        let result = extract_json(raw);
-        assert_eq!(result, "{\"id\": \"T1\"}", "language tag with _ should be stripped");
-    }
+#[test]
+fn extract_json_language_tag_with_underscore() {
+    // Language tag with underscore should be stripped
+    let raw = "Here is the JSON: ```my_role\n{\"id\": \"T1\"}\n```";
+    let result = extract_json(raw);
+    assert_eq!(
+        result, "{\"id\": \"T1\"}",
+        "language tag with _ should be stripped"
+    );
+}
 
-    #[test]
-    fn extract_json_language_tag_with_dot() {
-        // Language tag with a dot should NOT be stripped since '.' is not
-        // alphanumeric, dash, or underscore (a valid identifier).
-        let raw = "Here is the JSON: ```py.thon\n{\"id\": \"T1\"}\n```";
-        let result = extract_json(raw);
-        // The content between fences is returned including the language tag "py.thon"
-        // before the JSON, since the tag is not a valid identifier.
-        assert_eq!(
-            result,
-            "py.thon\n{\"id\": \"T1\"}",
-            "language tag with dot should not be stripped"
-        );
-    }
+#[test]
+fn extract_json_language_tag_with_dot() {
+    // Language tag with a dot should NOT be stripped since '.' is not
+    // alphanumeric, dash, or underscore (a valid identifier).
+    let raw = "Here is the JSON: ```py.thon\n{\"id\": \"T1\"}\n```";
+    let result = extract_json(raw);
+    // The content between fences is returned including the language tag "py.thon"
+    // before the JSON, since the tag is not a valid identifier.
+    assert_eq!(
+        result, "py.thon\n{\"id\": \"T1\"}",
+        "language tag with dot should not be stripped"
+    );
+}
 
-    #[test]
-    fn extract_json_language_tag_with_space() {
-        // Language tag with a space should NOT be stripped since space is not
-        // alphanumeric, dash, or underscore (not a valid identifier).
-        let raw = "Here is the JSON: ```my role\n{\"id\": \"T1\"}\n```";
-        let result = extract_json(raw);
-        // The content between fences is returned including the language tag "my role"
-        // before the JSON, since the tag has a space and is not a valid identifier.
-        assert_eq!(
-            result,
-            "my role\n{\"id\": \"T1\"}",
-            "language tag with space should not be stripped"
-        );
-    }
+#[test]
+fn extract_json_language_tag_with_space() {
+    // Language tag with a space should NOT be stripped since space is not
+    // alphanumeric, dash, or underscore (not a valid identifier).
+    let raw = "Here is the JSON: ```my role\n{\"id\": \"T1\"}\n```";
+    let result = extract_json(raw);
+    // The content between fences is returned including the language tag "my role"
+    // before the JSON, since the tag has a space and is not a valid identifier.
+    assert_eq!(
+        result, "my role\n{\"id\": \"T1\"}",
+        "language tag with space should not be stripped"
+    );
+}

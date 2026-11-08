@@ -14,23 +14,22 @@ pub fn retry_after_secs(resp: &reqwest::Response) -> Option<u64> {
     let header = resp.headers().get(reqwest::header::RETRY_AFTER)?;
     let s = header.to_str().ok()?.trim();
     // Try delta-seconds form first (decimal integer).
-    s.parse::<u64>().ok()
-        .or_else(|| {
-            // Fallback: try HTTP-date form (RFC 7231 / RFC 1123).
-            // Format: "Fri, 31 Dec 1999 23:59:59 GMT"
-            let dt: DateTime<Utc> = match DateTime::parse_from_rfc2822(s) {
-                Ok(d) => d.with_timezone(&Utc),
-                Err(_) => return None,
-            };
-            let now = Utc::now();
-            let diff = dt.signed_duration_since(now);
-            if diff.num_seconds() < 0 {
-                // The date is in the past; fall back to exponential backoff.
-                None
-            } else {
-                Some(diff.num_seconds() as u64)
-            }
-        })
+    s.parse::<u64>().ok().or_else(|| {
+        // Fallback: try HTTP-date form (RFC 7231 / RFC 1123).
+        // Format: "Fri, 31 Dec 1999 23:59:59 GMT"
+        let dt: DateTime<Utc> = match DateTime::parse_from_rfc2822(s) {
+            Ok(d) => d.with_timezone(&Utc),
+            Err(_) => return None,
+        };
+        let now = Utc::now();
+        let diff = dt.signed_duration_since(now);
+        if diff.num_seconds() < 0 {
+            // The date is in the past; fall back to exponential backoff.
+            None
+        } else {
+            Some(diff.num_seconds() as u64)
+        }
+    })
 }
 
 #[cfg(test)]

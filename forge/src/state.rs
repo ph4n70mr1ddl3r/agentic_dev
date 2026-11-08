@@ -91,10 +91,13 @@ impl State {
     }
 
     fn read_attempts(&self, phase: usize, task_id: &str) -> u32 {
-        let mut stmt = self.conn.prepare(
-            "SELECT attempts FROM task_state WHERE phase_id = ?1 AND task_id = ?2",
-        ).unwrap();
-        let row = stmt.query_row(params![phase as i64, task_id], |r| r.get::<_, i64>(0)).unwrap_or(0);
+        let mut stmt = self
+            .conn
+            .prepare("SELECT attempts FROM task_state WHERE phase_id = ?1 AND task_id = ?2")
+            .unwrap();
+        let row = stmt
+            .query_row(params![phase as i64, task_id], |r| r.get::<_, i64>(0))
+            .unwrap_or(0);
         row.max(0) as u32
     }
 
@@ -167,10 +170,15 @@ impl State {
     }
 
     fn read_status(&self, phase: usize, task_id: &str) -> Option<String> {
-        let mut stmt = self.conn.prepare(
-            "SELECT status FROM task_state WHERE phase_id = ?1 AND task_id = ?2",
-        ).unwrap();
-        stmt.query_row(params![phase as i64, task_id], |r| r.get::<_, Option<String>>(0)).ok().flatten()
+        let mut stmt = self
+            .conn
+            .prepare("SELECT status FROM task_state WHERE phase_id = ?1 AND task_id = ?2")
+            .unwrap();
+        stmt.query_row(params![phase as i64, task_id], |r| {
+            r.get::<_, Option<String>>(0)
+        })
+        .ok()
+        .flatten()
     }
 
     /// Task ids recorded as `done` for this phase — seeds the orchestrator's
@@ -345,15 +353,18 @@ mod tests {
     fn attempts_counter_increments() {
         let s = State::open_memory().unwrap();
         assert_eq!(s.read_attempts(1, "T1"), 0);
-        s.mark_failed(1, "T1", "QA Engineer", "first failure").unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "first failure")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
         assert_eq!(t1.1.attempts, 1);
-        s.mark_failed(1, "T1", "QA Engineer", "second failure").unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "second failure")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
         assert_eq!(t1.1.attempts, 2);
-        s.mark_done(1, "T2", "Solution Architect", "company", "company.json").unwrap();
+        s.mark_done(1, "T2", "Solution Architect", "company", "company.json")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t2 = list.iter().find(|(id, _)| id == "T2").unwrap();
         assert_eq!(t2.1.attempts, 1);
@@ -371,80 +382,106 @@ mod tests {
         assert_eq!(s.read_attempts(1, "T1"), 0);
         s.mark_failed(1, "T1", "QA Engineer", "boom").unwrap();
         assert_eq!(s.read_attempts(1, "T1"), 1);
-        s.mark_failed(1, "T1", "QA Engineer", "another issue").unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "another issue")
+            .unwrap();
         assert_eq!(s.read_attempts(1, "T1"), 2);
     }
 
     #[test]
     fn read_attempts_after_mark_done_and_mark_failed_again() {
         let s = State::open_memory().unwrap();
-        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json")
+            .unwrap();
         assert_eq!(s.read_attempts(1, "T1"), 1);
-        s.mark_failed(1, "T1", "QA Engineer", "new failure").unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "new failure")
+            .unwrap();
         assert_eq!(s.read_attempts(1, "T1"), 2);
     }
 
     #[test]
     fn mark_done_does_not_increment_attempts_for_already_done_task() {
         let s = State::open_memory().unwrap();
-        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json")
+            .unwrap();
         // Calling mark_done again on an already-done task should not increment attempts
-        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
-        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 for already-done task");
+        assert_eq!(
+            t1.1.attempts, 1,
+            "attempts should remain 1 for already-done task"
+        );
         assert_eq!(t1.1.status, "done");
     }
 
     #[test]
     fn mark_done_increments_after_mark_failed() {
         let s = State::open_memory().unwrap();
-        s.mark_failed(1, "T1", "QA Engineer", "first failure").unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "first failure")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
         assert_eq!(t1.1.status, "failed");
         assert_eq!(t1.1.attempts, 1, "first failure should be attempt 1");
 
-        s.mark_done(1, "T1", "Solution Architect", "company", "company.json").unwrap();
+        s.mark_done(1, "T1", "Solution Architect", "company", "company.json")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
         // After mark_done following mark_failed, attempts should NOT be incremented
         // since the failure was already counted as an attempt.
         assert_eq!(t1.1.status, "done");
-        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 after mark_done following mark_failed");
+        assert_eq!(
+            t1.1.attempts, 1,
+            "attempts should remain 1 after mark_done following mark_failed"
+        );
     }
 
     #[test]
     fn mark_done_does_not_increment_attempts_for_already_done_task_twice() {
         let s = State::open_memory().unwrap();
-        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
-        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
-        s.mark_done(1, "T1", "Architect", "company", "company.json").unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json")
+            .unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json")
+            .unwrap();
+        s.mark_done(1, "T1", "Architect", "company", "company.json")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
-        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 for repeatedly-done task");
+        assert_eq!(
+            t1.1.attempts, 1,
+            "attempts should remain 1 for repeatedly-done task"
+        );
         assert_eq!(t1.1.status, "done");
     }
 
     #[test]
     fn mark_done_after_skipped_transition() {
         let s = State::open_memory().unwrap();
-        s.mark_skipped(1, "T1", "QA Engineer", "review needed").unwrap();
-        s.mark_done(1, "T1", "Solution Architect", "company", "company.json").unwrap();
+        s.mark_skipped(1, "T1", "QA Engineer", "review needed")
+            .unwrap();
+        s.mark_done(1, "T1", "Solution Architect", "company", "company.json")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
         assert_eq!(t1.1.status, "done");
         // When marking done after skipped, read_status returns Some("skipped")
         // which matches the `_` arm, so attempts = read_attempts = 1 (not incremented)
         // Previous behavior: attempts = read_attempts + 1 = 1 + 1 = 2
-        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 after mark_done following mark_skipped");
+        assert_eq!(
+            t1.1.attempts, 1,
+            "attempts should remain 1 after mark_done following mark_skipped"
+        );
     }
 
     #[test]
     fn mark_done_after_failed_transition_attempts_not_incremented() {
         let s = State::open_memory().unwrap();
-        s.mark_failed(1, "T1", "QA Engineer", "first failure").unwrap();
-        s.mark_done(1, "T1", "Solution Architect", "company", "company.json").unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "first failure")
+            .unwrap();
+        s.mark_done(1, "T1", "Solution Architect", "company", "company.json")
+            .unwrap();
         let list = s.list(1).unwrap();
         let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
         assert_eq!(t1.1.status, "done");
@@ -452,6 +489,9 @@ mod tests {
         // since the failure was already counted as an attempt.
         // Previous behavior: attempts = read_attempts + 1 = 1 + 1 = 2
         // Fixed behavior: attempts = read_attempts = 1
-        assert_eq!(t1.1.attempts, 1, "attempts should remain 1 after mark_done following mark_failed");
+        assert_eq!(
+            t1.1.attempts, 1,
+            "attempts should remain 1 after mark_done following mark_failed"
+        );
     }
 }

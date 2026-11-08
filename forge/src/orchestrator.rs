@@ -878,9 +878,69 @@ mod tests {
                 .find(|(id, _)| id == "T1")
                 .map(|(_, reason)| reason)
         );
-        // T1 should not be skipped with un-runnable deps if all deps succeed;
-        // if they are, it indicates a real execution failure, not a sort order issue.
-        // (In this test setup with mock LLM, tasks may still fail; the key assert is
-        // no "pending dep" skip.)
+        // T1 may be skipped with "un-runnable deps" if some dependency fails, which is expected
+        // behavior when a dependency fails.
+    }
+
+    #[tokio::test]
+    async fn transitive_dependency_sort_order_forward() {
+        // Verify that tasks with transitive dependencies are sorted correctly
+        // even when presented in forward order (no-dep task first).
+        // T3 (no deps) -> T2 (depends on T3) -> T1 (depends on T2)
+        // Tasks presented as [T3, T2, T1] (forward order).
+        let mut plan = valid_plan_with_hats();
+        plan.organization.hats.push(Hat {
+            name: "no hat role".into(),
+            role: "no hat role".into(),
+            responsibilities: vec!["x".into()],
+        });
+        plan.first_phase.tasks = vec![
+            task("T3", "tech lead", &[]),
+            task("T2", "tech lead", &["T3"]),
+            task("T1", "tech lead", &["T2"]),
+        ];
+        plan.validate().unwrap();
+
+        let ctx = HatContext {
+            llm: &crate::llm::Llm::test(),
+            registry: &crate::schema::SchemaRegistry::load_dir(
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../erp/platform-spec/schemas"),
+            )
+            .unwrap(),
+            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../erp/platform-spec/examples"),
+            out_dir: std::path::PathBuf::from(""),
+        };
+        let state = State::open_memory().unwrap();
+        let opts = RunOptions {
+            pr: None,
+            state: &state,
+            phase: 1,
+            force: false,
+        };
+        let report = run_phase(&plan, &ctx, &opts).await.unwrap();
+
+        // T3 should run first (no deps), T2 second (dep on T3), T1 third (dep on T2).
+        // T1 should not be skipped due to pending dep on T2.
+        let t1_skipped_by_pending = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("pending dep"));
+        let _t1_skipped_by_unrunnable = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("un-runnable deps"));
+
+        assert!(
+            !t1_skipped_by_pending,
+            "T1 should not be skipped due to pending dep on T2; \
+             actual reason: {:?}",
+            report
+                .skipped
+                .iter()
+                .find(|(id, _)| id == "T1")
+                .map(|(_, reason)| reason)
+        );
     }
 }
