@@ -678,6 +678,143 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn transitive_dependency_sort_order_5tasks() {
+        // Verify that tasks with 5-task transitive dependencies are sorted correctly:
+        // T5 (no deps) -> T4 (depends on T5) -> T3 (depends on T4) -> T2 (depends on T3) -> T1 (depends on T2)
+        // Tasks are presented in reverse order (T1 first, T5 last), which previously
+        // caused the sort to fall through to alphabetical comparison, producing
+        // incorrect orderings for transitive chains.
+        let mut plan = valid_plan_with_hats();
+        plan.organization.hats.push(Hat {
+            name: "no hat role".into(),
+            role: "no hat role".into(),
+            responsibilities: vec!["x".into()],
+        });
+        plan.first_phase.tasks = vec![
+            task("T1", "tech lead", &["T2"]),
+            task("T2", "tech lead", &["T3"]),
+            task("T3", "tech lead", &["T4"]),
+            task("T4", "tech lead", &["T5"]),
+            task("T5", "tech lead", &[]),
+        ];
+        plan.validate().unwrap();
+
+        let ctx = HatContext {
+            llm: &crate::llm::Llm::test(),
+            registry: &crate::schema::SchemaRegistry::load_dir(
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../erp/platform-spec/schemas"),
+            )
+            .unwrap(),
+            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../erp/platform-spec/examples"),
+            out_dir: std::path::PathBuf::from(""),
+        };
+        let state = State::open_memory().unwrap();
+        let opts = RunOptions {
+            pr: None,
+            state: &state,
+            phase: 1,
+            force: false,
+        };
+        let report = run_phase(&plan, &ctx, &opts).await.unwrap();
+
+        // T5 should run first (no deps), T3 second (dep on T5), T2 third (dep on T3),
+        // T1 fourth (dep on T2). If T1 is skipped before T5 runs, that's a sort order bug.
+        let t1_skipped_by_pending = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("pending dep"));
+        let _t1_skipped_by_unrunnable = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("un-runnable deps"));
+
+        // With the fix, T1 should not be skipped due to pending dependency on T2,
+        // because the sort ensures T2 (and thereby T3, T4, T5) runs before T1.
+        assert!(
+            !t1_skipped_by_pending,
+            "T1 should not be skipped due to pending dep on T2 after the fix; \
+             actual reason: {:?}",
+            report
+                .skipped
+                .iter()
+                .find(|(id, _)| id == "T1")
+                .map(|(_, reason)| reason)
+        );
+        // T1 may be skipped with "un-runnable deps" if some dependency fails, which is expected
+        // behavior when a dependency fails.
+    }
+
+    #[tokio::test]
+    async fn transitive_dependency_sort_order_6tasks() {
+        // Verify that tasks with 6-task transitive dependencies are sorted correctly:
+        // T6 (no deps) -> T5 (depends on T6) -> T4 (depends on T5) -> T3 (depends on T4)
+        // -> T2 (depends on T3) -> T1 (depends on T2)
+        let mut plan = valid_plan_with_hats();
+        plan.organization.hats.push(Hat {
+            name: "no hat role".into(),
+            role: "no hat role".into(),
+            responsibilities: vec!["x".into()],
+        });
+        plan.first_phase.tasks = vec![
+            task("T1", "tech lead", &["T2"]),
+            task("T2", "tech lead", &["T3"]),
+            task("T3", "tech lead", &["T4"]),
+            task("T4", "tech lead", &["T5"]),
+            task("T5", "tech lead", &["T6"]),
+            task("T6", "tech lead", &[]),
+        ];
+        plan.validate().unwrap();
+
+        let ctx = HatContext {
+            llm: &crate::llm::Llm::test(),
+            registry: &crate::schema::SchemaRegistry::load_dir(
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../erp/platform-spec/schemas"),
+            )
+            .unwrap(),
+            examples_dir: std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../erp/platform-spec/examples"),
+            out_dir: std::path::PathBuf::from(""),
+        };
+        let state = State::open_memory().unwrap();
+        let opts = RunOptions {
+            pr: None,
+            state: &state,
+            phase: 1,
+            force: false,
+        };
+        let report = run_phase(&plan, &ctx, &opts).await.unwrap();
+
+        // T6 should run first (no deps), T5 second (dep on T6), T4 third (dep on T5),
+        // T2 fourth (dep on T3), T1 fifth (dep on T2). If T1 is skipped before T6 runs, that's a sort order bug.
+        let t1_skipped_by_pending = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("pending dep"));
+        let _t1_skipped_by_unrunnable = report
+            .skipped
+            .iter()
+            .any(|(id, reason)| id == "T1" && reason.contains("un-runnable deps"));
+
+        // With the fix, T1 should not be skipped due to pending dependency on T2,
+        // because the sort ensures T2 (and thereby T3, T4, T5, T6) runs before T1.
+        assert!(
+            !t1_skipped_by_pending,
+            "T1 should not be skipped due to pending dep on T2 after the fix; \
+             actual reason: {:?}",
+            report
+                .skipped
+                .iter()
+                .find(|(id, _)| id == "T1")
+                .map(|(_, reason)| reason)
+        );
+        // T1 may be skipped with "un-runnable deps" if some dependency fails, which is expected
+        // behavior when a dependency fails.
+    }
+
+    #[tokio::test]
     async fn transitive_dependency_sort_order_4tasks() {
         // Verify that tasks with 4-task transitive dependencies are sorted correctly:
         // T4 (no deps) -> T3 (depends on T4) -> T2 (depends on T3) -> T1 (depends on T2)
