@@ -494,4 +494,27 @@ mod tests {
             "attempts should remain 1 after mark_done following mark_failed"
         );
     }
+
+    #[test]
+    fn mark_done_failed_roundtrip_attempts() {
+        let s = State::open_memory().unwrap();
+        // Task done first, then failed, then done again
+        s.mark_done(1, "T1", "Solution Architect", "company", "company.json")
+            .unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "first failure").unwrap();
+        s.mark_done(1, "T1", "Solution Architect", "company", "company.json")
+            .unwrap();
+        let list = s.list(1).unwrap();
+        let t1 = list.iter().find(|(id, _)| id == "T1").unwrap();
+        // After done -> failed -> done:
+        // - mark_done sets attempts=1 (new task)
+        // - mark_failed increments to attempts=2 (read_attempts=1 + 1)
+        // - mark_done reads attempts=2 from the failed state, keeps it (not incremented)
+        assert_eq!(t1.1.status, "done");
+        assert_eq!(
+            t1.1.attempts, 2,
+            "attempts should be 2 after done->failed->done cycle: \
+             1 for initial success + 1 for the failure before re-do"
+        );
+    }
 }
