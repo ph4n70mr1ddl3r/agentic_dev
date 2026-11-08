@@ -73,7 +73,8 @@ if (fs.existsSync(GEN_DIR)) {
     }
     const schemaFile = NON_KIND[f];
     if (!schemaFile) {
-      console.warn(`UNTRACKED     modules/generated/${f} — not validated by CI gate`);
+      console.error(`UNTRACKED     modules/generated/${f} — not validated by CI gate`);
+      failures++;
       continue;
     }
     check(`modules/generated/${f}`, schemaFile, data);
