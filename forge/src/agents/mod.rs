@@ -300,3 +300,18 @@ mod tests {
             "language tag with dot should not be stripped"
         );
     }
+
+    #[test]
+    fn extract_json_language_tag_with_space() {
+        // Language tag with a space should NOT be stripped since space is not
+        // alphanumeric, dash, or underscore (not a valid identifier).
+        let raw = "Here is the JSON: ```my role\n{\"id\": \"T1\"}\n```";
+        let result = extract_json(raw);
+        // The content between fences is returned including the language tag "my role"
+        // before the JSON, since the tag has a space and is not a valid identifier.
+        assert_eq!(
+            result,
+            "my role\n{\"id\": \"T1\"}",
+            "language tag with space should not be stripped"
+        );
+    }
