@@ -501,7 +501,8 @@ mod tests {
         // Task done first, then failed, then done again
         s.mark_done(1, "T1", "Solution Architect", "company", "company.json")
             .unwrap();
-        s.mark_failed(1, "T1", "QA Engineer", "first failure").unwrap();
+        s.mark_failed(1, "T1", "QA Engineer", "first failure")
+            .unwrap();
         s.mark_done(1, "T1", "Solution Architect", "company", "company.json")
             .unwrap();
         let list = s.list(1).unwrap();

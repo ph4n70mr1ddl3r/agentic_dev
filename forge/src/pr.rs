@@ -74,7 +74,7 @@ pub fn pr_body(task: &Task, kind: &str, artifact_id: &str) -> String {
          - **Artifact:** {kind} `{aid}` (validated against `{schema}`)\n\
          - **Type:** {ty}\n\
          - **Depends on:** {deps}\n\n\
-         Machine-generated and mechanically reviewed against the platform-spec schema. \
+         Machine-generated and mechanically reviewed against the {schema} schema. \
          Human / domain review of the content is the remaining gate (ADR-0005).",
         role = task.role,
         id = task.id,
@@ -202,6 +202,44 @@ mod tests {
         assert!(body.contains("workflow `company-lifecycle`"));
         assert!(body.contains("workflow.schema.json"));
         assert!(body.contains("Depends on:** T0"));
+    }
+
+    #[test]
+    fn body_schema_reference_consistent_across_kinds() {
+        let entity_t = task("T1", "Solution Architect");
+        let entity_body = pr_body(&entity_t, "entity", "company");
+        assert!(entity_body.contains("entity.schema.json"));
+
+        let workflow_t = task("T2", "Tech Lead");
+        let workflow_body = pr_body(&workflow_t, "workflow", "company-lifecycle");
+        assert!(workflow_body.contains("workflow.schema.json"));
+
+        let reference_t = task("T3", "Domain Modeler (Financials)");
+        let reference_body = pr_body(&reference_t, "reference", "domain-reference");
+        assert!(reference_body.contains("domain-reference.schema.json"));
+
+        let testplan_t = task("T4", "QA Engineer");
+        let testplan_body = pr_body(&testplan_t, "test-plan", "test-plan");
+        assert!(testplan_body.contains("test-plan.schema.json"));
+
+        // trailing text should NOT hardcode "platform-spec schema" -
+        // it should reference the actual schema kind via the {schema} variable
+        assert!(
+            !entity_body.contains("platform-spec schema"),
+            "entity body should not contain generic 'platform-spec schema'"
+        );
+        assert!(
+            !workflow_body.contains("platform-spec schema"),
+            "workflow body should not contain generic 'platform-spec schema'"
+        );
+        assert!(
+            !reference_body.contains("platform-spec schema"),
+            "reference body should not contain generic 'platform-spec schema'"
+        );
+        assert!(
+            !testplan_body.contains("platform-spec schema"),
+            "test-plan body should not contain generic 'platform-spec schema'"
+        );
     }
 
     #[test]
