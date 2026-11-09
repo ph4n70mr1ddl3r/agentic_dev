@@ -323,3 +323,14 @@ fn extract_json_language_tag_with_space() {
         "language tag with space should not be stripped"
     );
 }
+
+#[test]
+fn extract_json_language_tag_with_numbers() {
+    let raw = "Here is the JSON: ```py3\n{\"id\": \"T1\"}\n```";
+    let result = extract_json(raw);
+    // Numbers are alphanumeric, so "py3" is a valid identifier and should be stripped
+    assert_eq!(
+        result, "{\"id\": \"T1\"}",
+        "language tag with numbers should be stripped as valid identifier"
+    );
+}
